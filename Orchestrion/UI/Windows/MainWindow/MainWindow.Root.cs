@@ -1,13 +1,12 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using CheapLoc;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
-using Dalamud.Logging;
-using Dalamud.Bindings.ImGui;
 using Orchestrion.Audio;
 using Orchestrion.Persistence;
 using Orchestrion.Types;
@@ -79,6 +78,7 @@ public partial class MainWindow : Window, IDisposable
 			});
 
 		BGMManager.OnSongChanged += SongChanged;
+		BGMManager.OnInnSongPlayed += UpdateInnSongInfo;
 		ResetReplacement();
 	}
 
@@ -102,9 +102,20 @@ public partial class MainWindow : Window, IDisposable
 		}
 	}
 
+	internal void UpdateInnSongInfo(string trackDtrName, string trackChatName)
+	{
+		if (Configuration.Instance.ShowSongInTitleBar)
+		{
+			DalamudApi.PluginLog.Debug("[MainWindow.Root::UpdateInnSongInfo] Updating title bar");
+			WindowName = $"Orchestrion - {trackDtrName}###Orchestrion";
+		}
+	}
+
 	public void Dispose()
 	{
 		BGMManager.Stop();
+		BGMManager.OnInnSongPlayed -= UpdateInnSongInfo;
+		BGMManager.OnSongChanged -= SongChanged;
 	}
 
 	private void ResetReplacement()

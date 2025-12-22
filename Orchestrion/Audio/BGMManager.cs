@@ -1,7 +1,7 @@
-﻿using CheapLoc;
-using Dalamud.Logging;
+using CheapLoc;
 using Dalamud.Plugin.Services;
 using Orchestrion.BGMSystem;
+using Orchestrion.InnSystem;
 using Orchestrion.Ipc;
 using Orchestrion.Persistence;
 using Orchestrion.Types;
@@ -10,7 +10,8 @@ namespace Orchestrion.Audio;
 
 public static class BGMManager
 {
-	private static readonly BGMController _bgmController;
+    private static readonly BGMController _bgmController;
+    private static readonly OrchestrionInnController _innController;
     private static readonly OrchestrionIpcManager _ipcManager;
     
     private static bool _isPlayingReplacement;
@@ -18,6 +19,9 @@ public static class BGMManager
 
     public delegate void SongChanged(int oldSong, int currentSong, int oldSecondSong, int oldCurrentSong, bool oldPlayedByOrch, bool playedByOrchestrion);
     public static event SongChanged OnSongChanged;
+
+    public delegate void InnSongPlayed(string trackDtrName, string trackChatName);
+    public static event InnSongPlayed OnInnSongPlayed;
     
     public static int CurrentSongId => _bgmController.CurrentSongId;
     public static int PlayingSongId => _bgmController.PlayingSongId;
@@ -25,12 +29,14 @@ public static class BGMManager
     public static int PlayingScene => _bgmController.PlayingScene;
     
     static BGMManager()
-	{
+    {
         _bgmController = new BGMController();
+        _innController = new OrchestrionInnController();
         _ipcManager = new OrchestrionIpcManager();
 
         DalamudApi.Framework.Update += Update;
         _bgmController.OnSongChanged += HandleSongChanged;
+        _innController.OnPlayingSongChanged += HandleInnSongChanged;
         OnSongChanged += IpcUpdate;
     }
 
@@ -38,6 +44,9 @@ public static class BGMManager
     {
         DalamudApi.Framework.Update -= Update;
         Stop();
+        OnSongChanged -= IpcUpdate;
+        _innController.OnPlayingSongChanged -= HandleInnSongChanged;
+        _bgmController.OnSongChanged -= HandleSongChanged;
         _bgmController.Dispose();
     }
 
@@ -49,11 +58,31 @@ public static class BGMManager
     
     public static void Update(IFramework ignored)
     {
+        _innController.Update();
         _bgmController.Update();
     }
     
+    private static void HandleInnSongChanged(uint oldInnPlayingTrackId, uint newInnPlayingTrackId, string oldInnTrackDtrName, string newInnTrackDtrName, string newInnTrackChatName)
+    {
+        if (newInnPlayingTrackId > 0)
+        {
+            // Estate orchestrions play over BGM, so trying to play BGM now is useless
+            Stop();
+            DalamudApi.PluginLog.Debug($"[BGMManager::HandleInnSongChanged] Inn song changed from {oldInnPlayingTrackId} - '{oldInnTrackDtrName}' to {newInnPlayingTrackId} - '{newInnTrackChatName}'");
+            OnInnSongPlayed.Invoke(newInnTrackDtrName, newInnTrackChatName);
+        }
+        else
+        {
+            // Force update for BGM Manager
+            HandleSongChanged(0, _bgmController.CurrentSongId, _bgmController.OldSecondSongId, _bgmController.SecondSongId);
+        }
+    }
+
     private static void HandleSongChanged(int oldSong, int newSong, int oldSecondSong, int newSecondSong)
     {
+        // Estate orchestrions play over BGM, so trying to handle BGM now is useless
+        if (InnMusicActive()) return;
+
         var currentChanged = oldSong != newSong;
         var secondChanged = oldSecondSong != newSecondSong;
         
@@ -68,10 +97,13 @@ public static class BGMManager
         
         if (PlayingSongId != 0 && DeepDungeonModeActive())
         {
-            if (!string.IsNullOrEmpty(_ddPlaylist) && !Configuration.Instance.Playlists.ContainsKey(_ddPlaylist)) // user deleted playlist
-                Stop();
-            else
-                PlayRandomSong(_ddPlaylist);
+            if (!string.IsNullOrEmpty(_ddPlaylist))
+            {
+                if (!Configuration.Instance.Playlists.ContainsKey(_ddPlaylist)) // user deleted playlist
+                    Stop();
+                else
+                    PlayRandomSong(_ddPlaylist);
+            }
             return;
         }
 
@@ -83,7 +115,7 @@ public static class BGMManager
             if (PlayingSongId != 0)
                 Stop();
             else
-                // This is the only place in this method where we invoke OnSongChanged, as Play and Stop do it themselves
+                // Play and Stop invoke OnSongChanged themselves
                 InvokeSongChanged(oldSong, newSong, oldSecondSong, newSecondSong, oldPlayedByOrch: false, playedByOrch: false);
             return;
         }
@@ -117,6 +149,9 @@ public static class BGMManager
 
     public static void Play(int songId, bool isReplacement = false)
     {
+        // Estate orchestrions play over BGM, so trying to play BGM now is useless
+        if (InnMusicActive()) return;
+
         var wasPlaying = PlayingSongId != 0;
         var oldSongId = CurrentAudibleSong;
         var secondSongId = _bgmController.SecondSongId;
@@ -190,5 +225,10 @@ public static class BGMManager
     public static bool DeepDungeonModeActive()
     {
         return _ddPlaylist != null;
+    }
+
+    public static bool InnMusicActive()
+    {
+        return  _innController.IsInnTrackPlaying();
     }
 }
