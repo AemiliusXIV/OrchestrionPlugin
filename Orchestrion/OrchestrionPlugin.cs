@@ -1,30 +1,32 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
-using Dalamud.Game.Command;
-using Dalamud.Game.Text;
-using Dalamud.Plugin;
 using System.Linq;
 using System.Reflection;
 using CheapLoc;
 using Dalamud;
+using Dalamud.Game.Command;
 using Dalamud.Game.Gui.Dtr;
+using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface;
 using Dalamud.Interface.GameFonts;
 using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Interface.Windowing;
+using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Orchestrion.Audio;
 using Orchestrion.BGMSystem;
 using Orchestrion.Persistence;
 using Orchestrion.UI.Windows;
+
 using MainWindow = Orchestrion.UI.Windows.MainWindow.MainWindow;
 
 namespace Orchestrion;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class OrchestrionPlugin : IDalamudPlugin
+public class OrchestrionPlugin : IDalamudPlugin, IDisposable
 {
 	private const string ConstName = "Orchestrion";
 	private const string CommandName = "/porch";
@@ -48,9 +50,14 @@ public class OrchestrionPlugin : IDalamudPlugin
 	{
 		DalamudApi.Initialize(pi);
 		LanguageChanged(DalamudApi.PluginInterface.UiLanguage);
+
+		_dtrEntry = DalamudApi.DtrBar.Get(ConstName);
+		_dtrEntry.Shown = Configuration.Instance.ShowSongInNative;
+		_dtrEntry.OnClick = args => _mainWindow.Toggle();
 		
 		BGMAddressResolver.Init();
 		BGMManager.OnSongChanged += OnSongChanged;
+		BGMManager.OnInnSongPlayed += UpdateInnSongInfo;
 
 		_windowSystem = new WindowSystem();
 		_mainWindow = new MainWindow(this);
@@ -60,10 +67,6 @@ public class OrchestrionPlugin : IDalamudPlugin
 		_windowSystem.AddWindow(_mainWindow);
 		_windowSystem.AddWindow(_settingsWindow);
 		_windowSystem.AddWindow(_miniPlayerWindow);
-		
-		_dtrEntry = DalamudApi.DtrBar.Get(ConstName);
-		_dtrEntry.Shown = Configuration.Instance.ShowSongInNative;
-		_dtrEntry.OnClick = args => _mainWindow.Toggle();
 
 		DalamudApi.CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
 		{
@@ -113,14 +116,27 @@ public class OrchestrionPlugin : IDalamudPlugin
 	
 	public void Dispose()
 	{
-		_mainWindow.Dispose();
+		DalamudApi.PluginInterface.LanguageChanged -= LanguageChanged;
+
+		DalamudApi.ClientState.Logout -= ClientStateOnLogout;
 		DalamudApi.Framework.Update -= OrchestrionUpdate;
-		DalamudApi.PluginInterface.UiBuilder.Draw -= _windowSystem.Draw;
-		// DalamudApi.PluginInterface.UiBuilder.BuildFonts -= BuildFonts;
-		DalamudApi.CommandManager.RemoveHandler(CommandName);
-		_dtrEntry?.Remove();
+
+		BGMManager.OnInnSongPlayed -= UpdateInnSongInfo;
+		BGMManager.OnSongChanged -= OnSongChanged;
+
 		PlaylistManager.Dispose();
 		BGMManager.Dispose();
+
+		_dtrEntry?.Remove();
+
+		DalamudApi.CommandManager.RemoveHandler(CommandName);
+
+		DalamudApi.PluginInterface.UiBuilder.OpenConfigUi -= OpenSettingsWindow;
+		DalamudApi.PluginInterface.UiBuilder.Draw -= _windowSystem.Draw;
+		_windowSystem.RemoveAllWindows();
+		_mainWindow.Dispose();
+
+		// DalamudApi.PluginInterface.UiBuilder.BuildFonts -= BuildFonts;
 		LargeFont?.Dispose();
 		CnFont?.Dispose();
 	}
@@ -459,11 +475,30 @@ public class OrchestrionPlugin : IDalamudPlugin
 	{
 		if (!Configuration.Instance.ShowSongInChat) return;
 		if (!SongList.Instance.TryGetSong(songId, out var song)) return;
+		if (!DalamudApi.ClientState.IsLoggedIn) return;
 		var songName = song.Strings[Configuration.Instance.ChatLanguageCode].Name;
 
 		// the actual echoing is done during framework update
 		if (!string.IsNullOrEmpty(songName))
 			_songEchoMsg = BuildChatMessageFormatted(Loc.Localize("NowPlayingEcho", "Now playing <i>{0}</i>."), songName, playedByOrch);
+	}
+
+	private void UpdateInnSongInfo(string trackDtrName, string trackChatName)
+	{
+		if (!trackDtrName.IsNullOrWhitespace() && _dtrEntry != null)
+		{
+			// UpdateDtr - mini
+			_dtrEntry.Text = $"{NativeNowPlayingPrefix} {trackDtrName}";
+			_dtrEntry.Tooltip = "";
+		}
+
+		if (!trackChatName.IsNullOrWhitespace())
+		{
+			// UpdateChat - mini
+			if (!Configuration.Instance.ShowSongInChat) return;
+			if (!DalamudApi.ClientState.IsLoggedIn) return;
+			_songEchoMsg = BuildChatMessageFormatted(Loc.Localize("NowPlayingEcho", "Now playing <i>{0}</i>."), trackChatName, false);
+		}
 	}
 
 	private unsafe bool IsLoadingScreen()
