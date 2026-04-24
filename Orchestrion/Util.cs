@@ -41,6 +41,12 @@ public static class Util
 
 	public static bool SearchMatches(string searchText, int songId)
 	{
+		if (LocalSong.IsLocalId(songId))
+		{
+			if (searchText.Length == 0) return true;
+			return Configuration.Instance.LocalSongs.TryGetValue(songId, out var ls) &&
+			       ls.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase);
+		}
 		return SongList.Instance.TryGetSong(songId, out var song) && SearchMatches(searchText, song);
 	}
 

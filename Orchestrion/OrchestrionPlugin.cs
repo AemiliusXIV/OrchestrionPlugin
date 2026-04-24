@@ -19,6 +19,7 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using Orchestrion.Audio;
 using Orchestrion.BGMSystem;
 using Orchestrion.Persistence;
+using Orchestrion.Types;
 using Orchestrion.UI.Windows;
 
 using MainWindow = Orchestrion.UI.Windows.MainWindow.MainWindow;
@@ -74,6 +75,7 @@ public class OrchestrionPlugin : IDalamudPlugin, IDisposable
 		});
 
 		DalamudApi.PluginInterface.UiBuilder.Draw += _windowSystem.Draw;
+		DalamudApi.PluginInterface.UiBuilder.OpenMainUi += OpenMainWindow;
 		DalamudApi.PluginInterface.UiBuilder.OpenConfigUi += OpenSettingsWindow;
 
 		DalamudApi.Framework.Update += OrchestrionUpdate;
@@ -102,6 +104,9 @@ public class OrchestrionPlugin : IDalamudPlugin, IDisposable
 		}
 		
 		LargeFont = atlas.NewGameFontHandle(new GameFontStyle(GameFontFamily.Axis, 24));
+
+		// Validate local song display IDs against the (now-loaded) game song list
+		Configuration.Instance.ValidateLocalSongIds();
 	}
 
 	public static void LanguageChanged(string code)
@@ -131,6 +136,7 @@ public class OrchestrionPlugin : IDalamudPlugin, IDisposable
 
 		DalamudApi.CommandManager.RemoveHandler(CommandName);
 
+		DalamudApi.PluginInterface.UiBuilder.OpenMainUi -= OpenMainWindow;
 		DalamudApi.PluginInterface.UiBuilder.OpenConfigUi -= OpenSettingsWindow;
 		DalamudApi.PluginInterface.UiBuilder.Draw -= _windowSystem.Draw;
 		_windowSystem.RemoveAllWindows();
@@ -432,25 +438,34 @@ public class OrchestrionPlugin : IDalamudPlugin, IDisposable
 	private void UpdateDtr(int songId, bool playedByOrch = false)
 	{
 		if (_dtrEntry == null) return;
+
+		if (LocalSong.IsLocalId(songId))
+		{
+			if (!Configuration.Instance.LocalSongs.TryGetValue(songId, out var localSong)) return;
+			var suffix = Configuration.Instance.ShowIdInNative ? $" - {localSong.DisplayId}" : "";
+			var text = $"{NativeNowPlayingPrefix}[{localSong.Name}{suffix}]";
+			_dtrEntry.Text = text;
+			_dtrEntry.Tooltip = Configuration.Instance.DisableTooltips ? "" : localSong.FilePath;
+			return;
+		}
+
 		if (!SongList.Instance.TryGetSong(songId, out var song)) return;
 		var songName = song.Strings[Configuration.Instance.ServerInfoLanguageCode].Name;
 		var locations = song.Strings[Configuration.Instance.ServerInfoLanguageCode].Locations;
 		var info = song.Strings[Configuration.Instance.ServerInfoLanguageCode].AdditionalInfo;
 		if (string.IsNullOrEmpty(songName)) return;
 
-		var suffix = "";
+		var gameSuffix = "";
 		if (Configuration.Instance.ShowIdInNative)
 		{
 			if (!string.IsNullOrEmpty(songName))
-				suffix = " - ";
-			suffix += $"{songId}";
+				gameSuffix = " - ";
+			gameSuffix += $"{songId}";
 		}
 
-		var text = songName + suffix;
-
-		text = playedByOrch ? $"{NativeNowPlayingPrefix}[{text}]" : $"{NativeNowPlayingPrefix}{text}";
-		
-		_dtrEntry.Text = text;
+		var gameText = songName + gameSuffix;
+		gameText = playedByOrch ? $"{NativeNowPlayingPrefix}[{gameText}]" : $"{NativeNowPlayingPrefix}{gameText}";
+		_dtrEntry.Text = gameText;
 
 		if (Configuration.Instance.DisableTooltips)
 		{
@@ -467,15 +482,23 @@ public class OrchestrionPlugin : IDalamudPlugin, IDisposable
 			if (locEmpty && !infoEmpty)
 				_dtrEntry.Tooltip = $"{info}";
 			if (!locEmpty && !infoEmpty)
-				_dtrEntry.Tooltip = $"{locations}\n{info}";	
+				_dtrEntry.Tooltip = $"{locations}\n{info}";
 		}
 	}
 
 	private void UpdateChat(int songId, bool playedByOrch = false)
 	{
 		if (!Configuration.Instance.ShowSongInChat) return;
-		if (!SongList.Instance.TryGetSong(songId, out var song)) return;
 		if (!DalamudApi.ClientState.IsLoggedIn) return;
+
+		if (LocalSong.IsLocalId(songId))
+		{
+			if (!Configuration.Instance.LocalSongs.TryGetValue(songId, out var localSong)) return;
+			_songEchoMsg = BuildChatMessageFormatted(Loc.Localize("NowPlayingEcho", "Now playing <i>{0}</i>."), localSong.Name, playedByOrch);
+			return;
+		}
+
+		if (!SongList.Instance.TryGetSong(songId, out var song)) return;
 		var songName = song.Strings[Configuration.Instance.ChatLanguageCode].Name;
 
 		// the actual echoing is done during framework update

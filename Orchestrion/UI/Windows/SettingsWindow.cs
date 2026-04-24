@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using CheapLoc;
 using Dalamud.Game.Text;
@@ -212,7 +214,34 @@ public class SettingsWindow : Window
         
         using (OrchestrionPlugin.LargeFont.Push())
         {
-            ImGui.Text(Loc.Localize("MiniPlayerSettings", "Mini Player Settings"));   
+            ImGui.Text("Local Library Settings");
+        }
+
+        Checkbox("Copy imported audio files into the plugin's storage folder (recommended)\nKeeps songs working even if the original file is moved or deleted.",
+            () => Configuration.Instance.CopyLocalSongsToStorage,
+            b => Configuration.Instance.CopyLocalSongsToStorage = b);
+
+        ImGui.Spacing();
+        ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
+        ImGui.TextUnformatted($"Storage folder: {Configuration.LocalSongsStorageDir}");
+        ImGui.PopStyleColor();
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Audio files copied by the plugin are stored here.\nDeleting a song from the Local Library also removes its copy from this folder.");
+        ImGui.SameLine();
+        if (ImGui.SmallButton("Open##openstorage"))
+        {
+            var dir = Configuration.LocalSongsStorageDir;
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true });
+        }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (OrchestrionPlugin.LargeFont.Push())
+        {
+            ImGui.Text(Loc.Localize("MiniPlayerSettings", "Mini Player Settings"));
         }
         
         Checkbox(Loc.Localize("ShowMiniPlayer", "Show mini player"),

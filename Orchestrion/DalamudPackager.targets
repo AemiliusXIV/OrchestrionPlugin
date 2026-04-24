@@ -15,6 +15,10 @@
                         xiv_bgm_ja.csv;
                         xiv_bgm_zh.csv;
                         xiv_bgm_metadata.csv;
-                        orchestrion.json"/>
+                        orchestrion.json;
+                        NAudio.dll;
+                        NAudio.Core.dll;
+                        NAudio.WinMM.dll;
+                        NAudio.Wasapi.dll"/>
     </Target>    
 </Project>

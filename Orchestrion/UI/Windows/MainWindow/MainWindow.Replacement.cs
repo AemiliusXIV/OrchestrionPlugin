@@ -2,6 +2,7 @@
 using System.Numerics;
 using CheapLoc;
 using Dalamud.Bindings.ImGui;
+using Orchestrion.Audio;
 using Orchestrion.Persistence;
 using Orchestrion.Types;
 using Orchestrion.UI.Components;
@@ -26,21 +27,30 @@ public partial class MainWindow
         foreach (var replacement in Configuration.Instance.SongReplacements.Values)
         {
             if (!SongList.Instance.TryGetSong(replacement.TargetSongId, out var targetSong)) continue;
-            if (!SongList.Instance.TryGetSong(replacement.ReplacementId, out var replacementSong) && replacement.ReplacementId != SongReplacementEntry.NoChangeId) continue;
+
+            var isLocalReplacement = LocalSong.IsLocalId(replacement.ReplacementId);
+            Song replacementSong = default;
+            if (!isLocalReplacement && !SongList.Instance.TryGetSong(replacement.ReplacementId, out replacementSong) && replacement.ReplacementId != SongReplacementEntry.NoChangeId) continue;
             if (!Util.SearchMatches(_searchText, targetSong) && !Util.SearchMatches(_searchText, replacementSong)) continue;
-            
+
             ImGui.Spacing();
 
             var targetText = $"{replacement.TargetSongId} - {targetSong.Name}";
-            var replText = replacement.ReplacementId == SongReplacementEntry.NoChangeId ? _noChange : $"{replacement.ReplacementId} - {replacementSong.Name}";
-            
+            string replText;
+            if (replacement.ReplacementId == SongReplacementEntry.NoChangeId)
+                replText = _noChange;
+            else if (isLocalReplacement)
+                replText = Configuration.Instance.LocalSongs.TryGetValue(replacement.ReplacementId, out var ls) ? $"{ls.DisplayId} - [Local] {ls.Name}" : "[Local] (missing)";
+            else
+                replText = $"{replacement.ReplacementId} - {replacementSong.Name}";
+
             ImGui.TextWrapped($"{targetText}");
             if (ImGui.IsItemHovered())
                 BgmTooltip.DrawBgmTooltip(targetSong);
 
             ImGui.Text(Loc.Localize("ReplaceWith", "will be replaced with"));
             ImGui.TextWrapped($"{replText}");
-            if (ImGui.IsItemHovered() && replacement.ReplacementId != SongReplacementEntry.NoChangeId)
+            if (ImGui.IsItemHovered() && replacement.ReplacementId != SongReplacementEntry.NoChangeId && !isLocalReplacement)
                 BgmTooltip.DrawBgmTooltip(SongList.Instance.GetSong(replacement.ReplacementId));
 
             // Buttons in bottom right of area
@@ -77,6 +87,8 @@ public partial class MainWindow
         string replacementText;
         if (_tmpReplacement.ReplacementId == SongReplacementEntry.NoChangeId)
             replacementText = _noChange;
+        else if (LocalSong.IsLocalId(_tmpReplacement.ReplacementId))
+            replacementText = Configuration.Instance.LocalSongs.TryGetValue(_tmpReplacement.ReplacementId, out var selectedLocal) ? $"{selectedLocal.DisplayId} - [Local] {selectedLocal.Name}" : "[Local] (missing)";
         else
             replacementText = $"{SongList.Instance.GetSong(_tmpReplacement.ReplacementId).Id} - {SongList.Instance.GetSong(_tmpReplacement.ReplacementId).Name}";
 
@@ -107,6 +119,25 @@ public partial class MainWindow
         {
             if (ImGui.Selectable(MainWindow._noChange))
                 _tmpReplacement.ReplacementId = SongReplacementEntry.NoChangeId;
+
+            if (Configuration.Instance.LocalSongs.Count > 0)
+            {
+                ImGui.Separator();
+                ImGui.TextUnformatted("── Local Library ──");
+                ImGui.Separator();
+                foreach (var localSong in Configuration.Instance.LocalSongs.Values)
+                {
+                    if (!string.IsNullOrEmpty(_searchText) &&
+                        !localSong.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase)) continue;
+                    var tmpText = $"{localSong.DisplayId} - [Local] {localSong.Name}";
+                    var isSelected = _tmpReplacement.ReplacementId == localSong.Id;
+                    if (ImGui.Selectable(tmpText, isSelected))
+                        _tmpReplacement.ReplacementId = localSong.Id;
+                }
+                ImGui.Separator();
+                ImGui.TextUnformatted("── Game Songs ──");
+                ImGui.Separator();
+            }
 
             foreach (var song in SongList.Instance.GetSongs().Values)
             {

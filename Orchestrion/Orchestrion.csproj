@@ -1,14 +1,14 @@
-<Project Sdk="Dalamud.NET.Sdk/14.0.1">
+﻿<Project Sdk="Dalamud.NET.Sdk/14.0.1">
   <PropertyGroup>
-    <PluginVersion>2.2.0.12</PluginVersion>
+    <PluginVersion>2.2.0.13</PluginVersion>
   </PropertyGroup>
   
   <PropertyGroup>
     <AssemblyName>orchestrion</AssemblyName>
     <AssemblyTitle>orchestrion</AssemblyTitle>
     <Product>orchestrion</Product>
-    <Authors>Meli, perchbird</Authors>
-    <Copyright>Copyright ©  2021</Copyright>
+    <Authors>AemiliusXIV, Meli, perchbird</Authors>
+    <Copyright>Copyright Â©  2021</Copyright>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <Version>$(PluginVersion)</Version>
     <FileVersion>$(PluginVersion)</FileVersion>
@@ -23,6 +23,10 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
 
   <ItemGroup>
     <Reference Include="CheapLoc">
