@@ -1,11 +1,20 @@
-[![Download count](https://img.shields.io/endpoint?url=https%3A%2F%2Fvz32sgcoal.execute-api.us-east-1.amazonaws.com%2Forchestrion)](https://github.com/perchbirdd/OrchestrionPlugin)
-[![Build status](https://github.com/perchbirdd/OrchestrionPlugin/actions/workflows/build.yml/badge.svg)](https://github.com/perchbirdd/OrchestrionPlugin)
-[![Latest release](https://img.shields.io/github/v/release/perchbirdd/OrchestrionPlugin)](https://github.com/perchbirdd/OrchestrionPlugin)
+[![Build status](https://github.com/AemiliusXIV/OrchestrionPlugin/actions/workflows/release.yml/badge.svg)](https://github.com/AemiliusXIV/OrchestrionPlugin)
+[![Latest release](https://img.shields.io/github/v/release/AemiliusXIV/OrchestrionPlugin)](https://github.com/AemiliusXIV/OrchestrionPlugin)
 
-# OrchestrionPlugin (perchbird fork)
-A plugin for [XIVLauncher](https://github.com/goaaats/FFXIVQuickLauncher) that adds a simple music player interface to control the in-game BGM,
-allowing you to set it to any in-game track you want. The BGM will persist through **most** changes of zone/instance/etc, and usually will stay active until you change it or click Stop.
+> **Based on [OrchestrionPlugin by perchbird & Meli](https://github.com/perchbirdd/OrchestrionPlugin).**
+> This repository adds local PC audio support (MP3/WAV) on top of the original plugin.
+
+# OrchestrionPlugin (AemiliusXIV fork)
+A plugin for [XIVLauncher](https://github.com/goaaats/FFXIVQuickLauncher) that adds a music player interface to control the in-game BGM,
+allowing you to set it to any in-game track you want — or play your own **local MP3/WAV files** as replacements.
+The BGM will persist through **most** changes of zone/instance/etc, and usually will stay active until you change it or click Stop.
 You can search for tracks by name or by assorted metadata, such as zone, instance or boss name where the track is played.
+
+## Custom Plugin Repository
+To install via the Dalamud Plugin Installer, add this URL under **Settings → Experimental → Custom Plugin Repositories**:
+```
+https://aemiliusxiv.github.io/OrchestrionPlugin/repo.json
+```
 
 ![Usage](https://github.com/ff-meli/OrchestrionPlugin/raw/master/gh/orch.gif)
 
@@ -26,7 +35,7 @@ If the tracks are new, it is possible that either the spreadsheet has not been u
 Mention it in the XL discord and @ perchbird, or create an issue on this repository.
 
 ## Credits
-* ff-meli, for the original OrchestrionPlugin
+* [perchbird](https://github.com/perchbirdd) & [ff-meli](https://github.com/ff-meli), for the original OrchestrionPlugin this fork is based on
 * goat, for the launcher and dalamud, without which none of this would be possible.
 * MagowDeath#1763 for maintaining [the previous spreadsheet](https://docs.google.com/spreadsheets/d/14yjTMHYmuB1m5-aJO8CkMferRT9sNzgasYq02oJENWs/edit#gid=0) with all of the song data that is used in this plugin.
 * Many thanks to [Caraxi](https://github.com/Caraxi/) for keeping things working and updated while I (meli) was away!

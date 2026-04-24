@@ -5,6 +5,7 @@ using CheapLoc;
 using Dalamud.Interface;
 using Dalamud.Logging;
 using Dalamud.Bindings.ImGui;
+using Orchestrion.Audio;
 using Orchestrion.Persistence;
 using Orchestrion.Types;
 using Orchestrion.UI.Windows;
@@ -57,6 +58,14 @@ public class RenderableSongList
 		if (first < 0 || first >= _listSource.Count) return default;
 		return SongList.Instance.GetSong(_listSource[first].Id);
 	}
+
+	public int GetFirstSelectedId()
+	{
+		if (_listSource.Count == 0 || _selected.Count == 0) return 0;
+		var first = _selected.ElementAt(0);
+		if (first < 0 || first >= _listSource.Count) return 0;
+		return _listSource[first].Id;
+	}
 	
 	public void Draw()
 	{
@@ -65,7 +74,7 @@ public class RenderableSongList
 			if (ImGui.BeginTable("RenderableSongList", 4, ImGuiTableFlags.SizingStretchProp))
 			{
 				ImGui.TableSetupColumn("playing", ImGuiTableColumnFlags.WidthFixed);
-				ImGui.TableSetupColumn("id", ImGuiTableColumnFlags.WidthFixed);
+				ImGui.TableSetupColumn("id", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("20000").X + 6);
 				ImGui.TableSetupColumn("title", ImGuiTableColumnFlags.WidthStretch);
 				ImGui.TableSetupColumn("time", ImGuiTableColumnFlags.WidthFixed);
 
@@ -113,7 +122,16 @@ public class RenderableSongList
 	private void DrawSongListItem(RenderableSongEntry entry, int index)
 	{
 		var isHistory = entry.TimePlayed != default;
-		if (entry.Id == 0 || !SongList.Instance.TryGetSong(entry.Id, out var song)) return;
+		if (entry.Id == 0) return;
+
+		if (LocalSong.IsLocalId(entry.Id))
+		{
+			if (!Configuration.Instance.LocalSongs.TryGetValue(entry.Id, out var localSong)) return;
+			DrawLocalSongListItem(entry, localSong, index);
+			return;
+		}
+
+		if (!SongList.Instance.TryGetSong(entry.Id, out var song)) return;
 		
 		if (_renderStrategy.IsPlaying(_listSource, index))
 		{
@@ -167,6 +185,46 @@ public class RenderableSongList
 				? Loc.Localize("MinutesAgo", "{0}m ago") 
 				: Loc.Localize("SecondsAgo", "{0}s ago");
 		ImGui.Text(string.Format(label, unit));
+	}
+
+	private void DrawLocalSongListItem(RenderableSongEntry entry, LocalSong localSong, int index)
+	{
+		if (_renderStrategy.IsPlaying(_listSource, index))
+		{
+			ImGui.PushFont(UiBuilder.IconFont);
+			ImGui.Text(FontAwesomeIcon.Play.ToIconString());
+			ImGui.PopFont();
+		}
+		else
+		{
+			var size = Util.GetIconSize(FontAwesomeIcon.Play);
+			ImGui.Dummy(size);
+		}
+		ImGui.TableNextColumn();
+		ImGui.Text(localSong.DisplayId > 0 ? localSong.DisplayId.ToString() : "L");
+		ImGui.TableNextColumn();
+
+		var selected = _selected.Contains(index);
+
+		if (ImGui.Selectable($"[Local] {localSong.Name}##{index}", selected, ImGuiSelectableFlags.AllowDoubleClick | ImGuiSelectableFlags.SpanAllColumns))
+		{
+			HandleSelect(index, selected);
+
+			if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
+				_renderStrategy.PlaySong(entry, index);
+		}
+
+		if (ImGui.BeginPopupContextItem($"{index}orch_local_context"))
+		{
+			if (_selected.Count is 0 or 1)
+				HandleSelect(index, selected);
+			if (DrawRemoveSubmenu())
+				ImGui.Separator();
+			DrawPlaylistAddSubmenu();
+			ImGui.EndPopup();
+		}
+
+		ImGui.TableNextColumn();
 	}
 
 	private void HandleSelect(int index, bool selected)

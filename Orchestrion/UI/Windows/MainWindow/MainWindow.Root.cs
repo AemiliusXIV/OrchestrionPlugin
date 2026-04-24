@@ -23,6 +23,7 @@ public partial class MainWindow : Window, IDisposable
 		History,
 		Replacements,
 		DDMode,
+		LocalLibrary,
 		Debug,
 	}
 	
@@ -33,10 +34,12 @@ public partial class MainWindow : Window, IDisposable
 
 	private readonly OrchestrionPlugin _orch;
 	private readonly RenderableSongList _mainSongList;
+	private readonly RenderableSongList _localSongList;
 	private readonly RenderableSongList _playlistSongList;
 	
 	private string _searchText = string.Empty;
 	private TabType _currentTab = TabType.AllSongs;
+	private int _knownLocalSongCount = -1;
 
 	public MainWindow(OrchestrionPlugin orch) : base(BaseName, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 	{
@@ -44,7 +47,11 @@ public partial class MainWindow : Window, IDisposable
 		_selectedPlaylist = Configuration.Instance.Playlists.Values.FirstOrDefault(p => p.Name == Configuration.Instance.LastSelectedPlaylist);
 
 		_mainSongList = new RenderableSongList(
-			SongList.Instance.GetSongs().Select(s => new RenderableSongEntry(s.Key)).ToList(),
+			BuildMainSongListSource(),
+			new SongListRenderStrategy());
+
+		_localSongList = new RenderableSongList(
+			BuildLocalSongListSource(),
 			new SongListRenderStrategy());
 		
 		_historySongList = new RenderableSongList(
@@ -96,8 +103,12 @@ public partial class MainWindow : Window, IDisposable
 			else
 			{
 				DalamudApi.PluginLog.Debug("[UpdateTitle] Updating title bar");
-				var songTitle = SongList.Instance.GetSongTitle(currentSong);
-				WindowName = $"Orchestrion - [{currentSong}] {songTitle}###Orchestrion";
+				string songTitle;
+				if (LocalSong.IsLocalId(currentSong))
+					songTitle = Configuration.Instance.LocalSongs.TryGetValue(currentSong, out var ls) ? $"[Local] {ls.Name}" : "[Local]";
+				else
+					songTitle = SongList.Instance.GetSongTitle(currentSong);
+				WindowName = $"Orchestrion - {songTitle}###Orchestrion";
 			}
 		}
 	}
@@ -149,6 +160,7 @@ public partial class MainWindow : Window, IDisposable
 		if (ImGui.InputText("##searchbox", ref _searchText, 32))
 		{
 			_mainSongList.SetSearch(_searchText);
+			_localSongList.SetSearch(_searchText);
 			_historySongList.SetSearch(_searchText);
 			_playlistSongList.SetSearch(_searchText);
 		}
@@ -167,6 +179,7 @@ public partial class MainWindow : Window, IDisposable
 			DrawTab(Loc.Localize("History", "History"), "orch_History", DrawSongHistoryTab, TabType.History);
 			DrawTab(Loc.Localize("Replacements", "Replacements"), "orch_Replacements", DrawReplacementsTab, TabType.Replacements);
 			DrawTab(Loc.Localize("DDMode", "DD Mode"), "orch_DDMode", DrawDeepDungeonModeTab, TabType.DDMode);
+			DrawTab("Local Library", "orch_LocalLibrary", DrawLocalLibraryTab, TabType.LocalLibrary);
 #if DEBUG
 			DrawTab("Debug", "orch_Debug", DrawDebugTab, TabType.Debug);
 #endif
@@ -189,7 +202,12 @@ public partial class MainWindow : Window, IDisposable
 	private void DrawFooter()
 	{
 		var song = GetSelectedSongForTab();
-		
+		var selectedId = GetSelectedIdForTab();
+		var isLocalSelected = LocalSong.IsLocalId(selectedId);
+		var canPlay = isLocalSelected
+			? Configuration.Instance.LocalSongs.ContainsKey(selectedId)
+			: song.FileExists;
+
 		var width = ImGui.GetContentRegionAvail().X - ImGui.GetStyle().WindowPadding.X;
 		var stopText = Loc.Localize("Stop", "Stop");
 		var playText = Loc.Localize("Play", "Play");
@@ -204,11 +222,11 @@ public partial class MainWindow : Window, IDisposable
 
 		ImGui.SameLine();
 
-		ImGui.BeginDisabled(!song.FileExists);
+		ImGui.BeginDisabled(!canPlay);
 		if (ImGui.Button(playText, new Vector2(width / 2, buttonHeight)))
-			BGMManager.Play(song.Id);
+			BGMManager.Play(isLocalSelected ? selectedId : song.Id);
 		ImGui.EndDisabled();
-		if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+		if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled) && !isLocalSelected)
 			BgmTooltip.DrawBgmTooltip(song);
 	}
 	
@@ -221,7 +239,28 @@ public partial class MainWindow : Window, IDisposable
 			_ => default,
 		};
 	}
+
+	private int GetSelectedIdForTab()
+	{
+		if (_currentTab == TabType.AllSongs)
+		{
+			var gameId = _mainSongList.GetFirstSelectedId();
+			if (gameId != 0) return gameId;
+			return _localSongList.GetFirstSelectedId();
+		}
+		return _currentTab switch
+		{
+			TabType.History => _historySongList.GetFirstSelectedId(),
+			_ => 0,
+		};
+	}
 	
+	private static List<RenderableSongEntry> BuildMainSongListSource()
+		=> SongList.Instance.GetSongs().Select(s => new RenderableSongEntry(s.Key)).ToList();
+
+	private static List<RenderableSongEntry> BuildLocalSongListSource()
+		=> Configuration.Instance.LocalSongs.Keys.Select(id => new RenderableSongEntry(id)).ToList();
+
 	private static void RightAlignButton(float y, string text)
 	{
 		var style = ImGui.GetStyle();
