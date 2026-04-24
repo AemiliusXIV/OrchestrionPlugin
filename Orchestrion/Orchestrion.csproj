@@ -7,7 +7,7 @@
     <AssemblyName>orchestrion</AssemblyName>
     <AssemblyTitle>orchestrion</AssemblyTitle>
     <Product>orchestrion</Product>
-    <Authors>Meli, perchbird</Authors>
+    <Authors>AemiliusXIV, Meli, perchbird</Authors>
     <Copyright>Copyright ©  2021</Copyright>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <Version>$(PluginVersion)</Version>
@@ -23,6 +23,10 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
 
   <ItemGroup>
     <Reference Include="CheapLoc">

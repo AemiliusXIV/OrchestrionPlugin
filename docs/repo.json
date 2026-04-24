@@ -1,0 +1,19 @@
+[
+  {
+    "Author": "AemiliusXIV",
+    "Name": "Orchestrion",
+    "Punchline": "BGM replacement with local audio support",
+    "Description": "Play and replace FFXIV background music. Supports local MP3/WAV files from your PC alongside all in-game tracks, with fade transitions and volume sync.\n\nOriginally by perchbird & Meli: https://github.com/perchbirdd/OrchestrionPlugin",
+    "Changelog": "Added local audio library — import MP3/WAV files from your PC and use them as BGM replacements, with per-song display IDs, fade transitions, and bulk import support.",
+    "Tags": ["music", "bgm", "audio"],
+    "CategoryTags": ["Audio"],
+    "InternalName": "orchestrion",
+    "AssemblyVersion": "2.2.0.12",
+    "RepoUrl": "https://github.com/AemiliusXIV/OrchestrionPlugin",
+    "ApplicableVersion": "any",
+    "DalamudApiLevel": 12,
+    "DownloadLinkInstall": "https://github.com/AemiliusXIV/OrchestrionPlugin/releases/latest/download/latest.zip",
+    "DownloadLinkTesting": "https://github.com/AemiliusXIV/OrchestrionPlugin/releases/latest/download/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/AemiliusXIV/OrchestrionPlugin/releases/latest/download/latest.zip"
+  }
+]

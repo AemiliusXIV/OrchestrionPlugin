@@ -36,6 +36,8 @@ public class Configuration : IPluginConfiguration
     public string LastSelectedPlaylist { get; set; } = "Favorites";
 
     public Dictionary<int, SongReplacementEntry> SongReplacements { get; private set; } = new();
+
+    public Dictionary<int, LocalSong> LocalSongs { get; set; } = new();
     
     [Obsolete("Favorites are gone in favor of playlists.")]
     public HashSet<int> FavoriteSongs { get; internal set; } = new();
@@ -89,6 +91,60 @@ public class Configuration : IPluginConfiguration
                 c.Save();
                 break;
         }
+    }
+
+    /// <summary>
+    /// Adds a local song, auto-assigns a negative ID, persists, and returns the new ID.
+    /// </summary>
+    public int AddLocalSong(string name, string filePath, TimeSpan duration)
+    {
+        var id = LocalSongs.Count == 0 ? LocalSong.LocalIdMin : LocalSongs.Keys.Min() - 1;
+        var displayId = FindNextAvailableDisplayId();
+        LocalSongs[id] = new LocalSong { Id = id, DisplayId = displayId, Name = name, FilePath = filePath, Duration = duration };
+        Save();
+        return id;
+    }
+
+    private int FindNextAvailableDisplayId()
+    {
+        var used = LocalSongs.Values.Select(ls => ls.DisplayId).ToHashSet();
+        var candidate = LocalSong.DisplayIdStart;
+        while (SongList.Instance.TryGetSong(candidate, out _) || used.Contains(candidate))
+            candidate++;
+        return candidate;
+    }
+
+    /// <summary>
+    /// Ensures every local song has a unique DisplayId that doesn't clash with a game song.
+    /// Call this once after both SongList and Configuration are loaded.
+    /// </summary>
+    public void ValidateLocalSongIds()
+    {
+        var reassigned = false;
+        var used = new HashSet<int>();
+        foreach (var song in LocalSongs.Values)
+        {
+            if (song.DisplayId == 0 || SongList.Instance.TryGetSong(song.DisplayId, out _) || used.Contains(song.DisplayId))
+            {
+                var candidate = LocalSong.DisplayIdStart;
+                while (SongList.Instance.TryGetSong(candidate, out _) || used.Contains(candidate))
+                    candidate++;
+                song.DisplayId = candidate;
+                reassigned = true;
+            }
+            used.Add(song.DisplayId);
+        }
+        if (reassigned) Save();
+    }
+
+    public void RemoveLocalSong(int id)
+    {
+        LocalSongs.Remove(id);
+        // Clean up any replacements that pointed to this local song
+        var toRemove = SongReplacements.Where(kv => kv.Value.ReplacementId == id).Select(kv => kv.Key).ToList();
+        foreach (var key in toRemove)
+            SongReplacements.Remove(key);
+        Save();
     }
 
     public void Save()
