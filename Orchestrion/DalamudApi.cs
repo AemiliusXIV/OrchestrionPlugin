@@ -1,6 +1,7 @@
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using Dalamud.Game.Config;
 
 namespace Orchestrion;
 
@@ -21,6 +22,7 @@ public class DalamudApi
     // [PluginService] public static IFateTable FateTable { get; private set; }
     // [PluginService] public static IFlyTextGui FlyTextGui { get; private set; }
     [PluginService] public static IFramework Framework { get; private set; }
+    [PluginService] public static IGameConfig GameConfig { get; private set; }
     [PluginService] public static IGameGui GameGui { get; private set; }
     [PluginService] public static IGameInteropProvider Hooks { get; private set; }
     // [PluginService] public static IGameNetwork GameNetwork { get; private set; }

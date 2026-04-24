@@ -13,7 +13,17 @@ public static class PlaylistManager
 	public static int CurrentSongIndex => _currentSongIndex;
 	public static Song CurrentSong => SongList.Instance.GetSong(CurrentPlaylist?.Songs[_currentSongIndex] ?? 0);
 	public static TimeSpan ElapsedDuration => TimeSpan.FromMilliseconds(ElapsedMs);
-	public static TimeSpan Duration => CurrentSong.Duration;
+
+	public static TimeSpan Duration
+	{
+		get
+		{
+			var id = CurrentSongId;
+			if (LocalSong.IsLocalId(id))
+				return Configuration.Instance.LocalSongs.TryGetValue(id, out var ls) ? ls.Duration : TimeSpan.Zero;
+			return CurrentSong.Duration;
+		}
+	}
 
 	private static string _currentPlaylist = string.Empty;
 	private static int _playlistStartTrackCount;

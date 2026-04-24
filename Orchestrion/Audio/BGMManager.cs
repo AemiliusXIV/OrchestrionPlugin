@@ -17,6 +17,19 @@ public static class BGMManager
     private static bool _isPlayingReplacement;
     private static string _ddPlaylist;
 
+    // Local audio state
+    private static bool _isPlayingLocalSong;
+    private static int _playingLocalSongId;
+    private static bool _mutedGameBgmForLocal;
+    private static bool _originalGameBgmMute;
+
+    // Local audio fade
+    private enum LocalFadeMode { None, FadeIn, FadeOut }
+    private static LocalFadeMode _localFadeMode = LocalFadeMode.None;
+    private static long _localFadeStartMs;
+    private const int LocalFadeDurationMs = 750;
+    private static float _localFadeMultiplier = 1.0f;
+
     public delegate void SongChanged(int oldSong, int currentSong, int oldSecondSong, int oldCurrentSong, bool oldPlayedByOrch, bool playedByOrchestrion);
     public static event SongChanged OnSongChanged;
 
@@ -24,8 +37,17 @@ public static class BGMManager
     public static event InnSongPlayed OnInnSongPlayed;
     
     public static int CurrentSongId => _bgmController.CurrentSongId;
-    public static int PlayingSongId => _bgmController.PlayingSongId;
-    public static int CurrentAudibleSong => _bgmController.CurrentAudibleSong;
+
+    /// <summary>
+    /// Returns the local song ID when a local file is active, otherwise delegates to BGMController.
+    /// </summary>
+    public static int PlayingSongId => _isPlayingLocalSong ? _playingLocalSongId : _bgmController.PlayingSongId;
+
+    /// <summary>
+    /// The song the user actually hears: local ID when local is active, otherwise game's audible song.
+    /// </summary>
+    public static int CurrentAudibleSong => _isPlayingLocalSong ? _playingLocalSongId : _bgmController.CurrentAudibleSong;
+
     public static int PlayingScene => _bgmController.PlayingScene;
     
     static BGMManager()
@@ -43,7 +65,14 @@ public static class BGMManager
     public static void Dispose()
     {
         DalamudApi.Framework.Update -= Update;
+        // Force-complete any pending fade before full shutdown
+        if (_localFadeMode != LocalFadeMode.None)
+        {
+            _localFadeMode = LocalFadeMode.None;
+            StopLocalMute();
+        }
         Stop();
+        LocalAudioPlayer.Dispose();
         OnSongChanged -= IpcUpdate;
         _innController.OnPlayingSongChanged -= HandleInnSongChanged;
         _bgmController.OnSongChanged -= HandleSongChanged;
@@ -60,6 +89,44 @@ public static class BGMManager
     {
         _innController.Update();
         _bgmController.Update();
+        UpdateLocalFade();
+        if (_isPlayingLocalSong && _localFadeMode == LocalFadeMode.None)
+        {
+            if (!LocalAudioPlayer.IsPlaying)
+                LocalAudioPlayer.Restart();
+            else
+                LocalAudioPlayer.SyncVolume();
+        }
+    }
+
+    private static void UpdateLocalFade()
+    {
+        if (_localFadeMode == LocalFadeMode.None) return;
+        var elapsed = Environment.TickCount64 - _localFadeStartMs;
+        var progress = Math.Clamp((float)elapsed / LocalFadeDurationMs, 0f, 1f);
+
+        if (_localFadeMode == LocalFadeMode.FadeIn)
+        {
+            _localFadeMultiplier = progress;
+            LocalAudioPlayer.SyncVolume(_localFadeMultiplier);
+            if (progress >= 1f)
+            {
+                _localFadeMode = LocalFadeMode.None;
+                _localFadeMultiplier = 1f;
+            }
+        }
+        else // FadeOut
+        {
+            _localFadeMultiplier = 1f - progress;
+            LocalAudioPlayer.SyncVolume(_localFadeMultiplier);
+            if (progress >= 1f)
+            {
+                LocalAudioPlayer.Stop();
+                StopLocalMute();
+                _localFadeMode = LocalFadeMode.None;
+                _localFadeMultiplier = 1f;
+            }
+        }
     }
     
     private static void HandleInnSongChanged(uint oldInnPlayingTrackId, uint newInnPlayingTrackId, string oldInnTrackDtrName, string newInnTrackDtrName, string newInnTrackChatName)
@@ -107,7 +174,7 @@ public static class BGMManager
             return;
         }
 
-        if (PlayingSongId != 0 && !_isPlayingReplacement) return; // manually playing track
+        if (PlayingSongId != 0 && !_isPlayingReplacement) return; // manually playing track (includes local songs)
         if (secondChanged && !currentChanged && !_isPlayingReplacement) return; // don't care about behind song if not playing replacement
 
         if (!newHasReplacement) // user isn't playing and no replacement at all
@@ -155,23 +222,103 @@ public static class BGMManager
         var wasPlaying = PlayingSongId != 0;
         var oldSongId = CurrentAudibleSong;
         var secondSongId = _bgmController.SecondSongId;
-        
+
+        if (LocalSong.IsLocalId(songId))
+        {
+            if (!Configuration.Instance.LocalSongs.TryGetValue(songId, out var localSong))
+            {
+                DalamudApi.PluginLog.Warning($"[Play] Local song ID {songId} not found in library");
+                return;
+            }
+
+            // Stop any current game BGM override
+            if (_bgmController.PlayingSongId != 0)
+                _bgmController.SetSong(0);
+
+            // Cancel any in-progress fade and clean up previous local audio
+            if (_localFadeMode != LocalFadeMode.None)
+            {
+                LocalAudioPlayer.Stop();
+                StopLocalMute();
+                _localFadeMode = LocalFadeMode.None;
+            }
+            else if (_isPlayingLocalSong)
+            {
+                StopLocalMute();
+            }
+
+            DalamudApi.PluginLog.Debug($"[Play] Playing local song {songId} '{localSong.Name}'");
+            MuteGameBgm();
+            LocalAudioPlayer.Play(localSong.FilePath, 0f);
+            _localFadeMode = LocalFadeMode.FadeIn;
+            _localFadeStartMs = Environment.TickCount64;
+            _localFadeMultiplier = 0f;
+            _isPlayingLocalSong = true;
+            _playingLocalSongId = songId;
+            _isPlayingReplacement = isReplacement;
+            InvokeSongChanged(oldSongId, songId, secondSongId, oldSongId, oldPlayedByOrch: wasPlaying, playedByOrch: true);
+            return;
+        }
+
+        // Switching away from a local song to an in-game song (abort any fade)
+        if (_isPlayingLocalSong || _localFadeMode != LocalFadeMode.None)
+        {
+            LocalAudioPlayer.Stop();
+            StopLocalMute();
+            _isPlayingLocalSong = false;
+            _playingLocalSongId = 0;
+            _localFadeMode = LocalFadeMode.None;
+            _localFadeMultiplier = 1f;
+        }
+
         DalamudApi.PluginLog.Debug($"[Play] Playing {songId}");
         InvokeSongChanged(oldSongId, songId, secondSongId, oldSongId, oldPlayedByOrch: wasPlaying, playedByOrch: true);
         _bgmController.SetSong((ushort)songId);
         _isPlayingReplacement = isReplacement;
     }
 
+    private static void MuteGameBgm()
+    {
+        DalamudApi.GameConfig.System.TryGet("IsSndBgm", out _originalGameBgmMute);
+        if (!_originalGameBgmMute)
+        {
+            DalamudApi.GameConfig.System.Set("IsSndBgm", true);
+            _mutedGameBgmForLocal = true;
+        }
+    }
+
+    private static void StopLocalMute()
+    {
+        if (!_mutedGameBgmForLocal) return;
+        DalamudApi.GameConfig.System.Set("IsSndBgm", _originalGameBgmMute);
+        _mutedGameBgmForLocal = false;
+    }
+
     public static void Stop()
     {
         if (PlaylistManager.IsPlaying)
         {
-            DalamudApi.PluginLog.Debug("[Stop] Stopping playlist...");    
+            DalamudApi.PluginLog.Debug("[Stop] Stopping playlist...");
             PlaylistManager.Reset();
         }
 
         _ddPlaylist = null;
-        
+
+        if (_isPlayingLocalSong)
+        {
+            DalamudApi.PluginLog.Debug($"[Stop] Stopping local song {_playingLocalSongId}...");
+            var wasLocalId = _playingLocalSongId;
+            _isPlayingLocalSong = false;
+            _playingLocalSongId = 0;
+            _isPlayingReplacement = false;
+            // Fade out audio then stop — StopLocalMute() is deferred to UpdateLocalFade completion
+            _localFadeMode = LocalFadeMode.FadeOut;
+            _localFadeStartMs = Environment.TickCount64;
+            _localFadeMultiplier = 1f;
+            InvokeSongChanged(wasLocalId, CurrentSongId, _bgmController.SecondSongId, _bgmController.SecondSongId, oldPlayedByOrch: true, playedByOrch: false);
+            return;
+        }
+
         if (PlayingSongId == 0) return;
         DalamudApi.PluginLog.Debug($"[Stop] Stopping playing {_bgmController.PlayingSongId}...");
 
