@@ -5,6 +5,7 @@ using System.Linq;
 using CheapLoc;
 using Dalamud.Game.Text;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
@@ -16,7 +17,9 @@ namespace Orchestrion.UI.Windows;
 
 public class SettingsWindow : Window
 {
-	public SettingsWindow() : base("Orchestrion Settings###orchsettings", ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoCollapse)
+    private bool _deleteOriginalsOnMigrate = false;
+
+	public SettingsWindow() : base("Orchestrion Settings###orchsettings", ImGuiWindowFlags.NoCollapse)
     {
         SizeCondition = ImGuiCond.FirstUseEver;
     }
@@ -146,6 +149,10 @@ public class SettingsWindow : Window
         ImGui.Indent(-1 * 30f * ImGuiHelpers.GlobalScale);
         ImGui.EndDisabled();
 
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
         using (OrchestrionPlugin.LargeFont.Push())
         {
             ImGui.Text(Loc.Localize("LocSettings", "Localization Settings"));
@@ -212,6 +219,10 @@ public class SettingsWindow : Window
             Util.AvailableTitleLanguages,
             Util.LangCodeToLanguage);
         
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
         using (OrchestrionPlugin.LargeFont.Push())
         {
             ImGui.Text("Local Library Settings");
@@ -220,6 +231,76 @@ public class SettingsWindow : Window
         Checkbox("Copy imported audio files into the plugin's storage folder (recommended)\nKeeps songs working even if the original file is moved or deleted.",
             () => Configuration.Instance.CopyLocalSongsToStorage,
             b => Configuration.Instance.CopyLocalSongsToStorage = b);
+
+        Checkbox("Show local songs at the top of the All Songs list",
+            () => Configuration.Instance.LocalSongsAtTop,
+            b => Configuration.Instance.LocalSongsAtTop = b);
+
+        if (!Configuration.Instance.CopyLocalSongsToStorage)
+        {
+            ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudOrange);
+            ImGui.TextWrapped("Warning: songs will only play from their original file location. If a file is moved, renamed, or deleted, it will no longer work in the Local Library.");
+            ImGui.PopStyleColor();
+        }
+
+        var songsOutside = Configuration.Instance.CountSongsOutsideStorage();
+        if (songsOutside > 0)
+        {
+            ImGui.Spacing();
+            ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
+            ImGui.TextUnformatted($"{songsOutside} song(s) are stored outside the plugin folder.");
+            ImGui.PopStyleColor();
+
+            var del = _deleteOriginalsOnMigrate;
+            if (ImGui.Checkbox("##orchdeloriginals", ref del))
+                _deleteOriginalsOnMigrate = del;
+            ImGui.SameLine();
+            ImGui.TextUnformatted("Remove original files after copying");
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("If enabled, the original file will be deleted from its source location\nonce it has been safely copied into the plugin's storage folder.");
+
+            if (ImGui.Button("Migrate to storage##orchmigrate"))
+            {
+                if (_deleteOriginalsOnMigrate)
+                    ImGui.OpenPopup("Confirm migration##orchmigrateconfirm");
+                else
+                {
+                    var count = Configuration.Instance.MigrateLocalSongsToStorage(false);
+                    DalamudApi.NotificationManager.AddNotification(new Notification
+                    {
+                        Title = "Orchestrion — Local Library",
+                        Content = count > 0 ? $"Migrated {count} song(s) to plugin storage." : "All songs are already in plugin storage.",
+                        Type = count > 0 ? NotificationType.Success : NotificationType.Info,
+                    });
+                }
+            }
+
+            if (ImGui.BeginPopupModal("Confirm migration##orchmigrateconfirm", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoCollapse))
+            {
+                ImGui.TextUnformatted($"This will copy {songsOutside} song(s) into the plugin storage folder");
+                ImGui.TextUnformatted("and permanently delete the originals from their source locations.");
+                ImGui.Spacing();
+                ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudOrange);
+                ImGui.TextUnformatted("This cannot be undone.");
+                ImGui.PopStyleColor();
+                ImGui.Spacing();
+                if (ImGui.Button("Yes, migrate and delete originals"))
+                {
+                    var count = Configuration.Instance.MigrateLocalSongsToStorage(true);
+                    DalamudApi.NotificationManager.AddNotification(new Notification
+                    {
+                        Title = "Orchestrion — Local Library",
+                        Content = count > 0 ? $"Migrated {count} song(s), originals deleted." : "Nothing to migrate.",
+                        Type = count > 0 ? NotificationType.Success : NotificationType.Info,
+                    });
+                    ImGui.CloseCurrentPopup();
+                }
+                ImGui.SameLine();
+                if (ImGui.Button("Cancel"))
+                    ImGui.CloseCurrentPopup();
+                ImGui.EndPopup();
+            }
+        }
 
         ImGui.Spacing();
         ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);

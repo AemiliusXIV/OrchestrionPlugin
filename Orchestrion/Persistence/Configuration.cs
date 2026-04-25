@@ -46,6 +46,13 @@ public class Configuration : IPluginConfiguration
     /// When false, only the original file path is stored (legacy behaviour).
     /// </summary>
     public bool CopyLocalSongsToStorage { get; set; } = true;
+    public bool LocalSongsAtTop { get; set; } = false;
+
+    /// <summary>
+    /// Set to true after the Local Library tab has been opened for the first time.
+    /// Used to show a one-time introduction notification.
+    /// </summary>
+    public bool HasShownLocalLibraryIntro { get; set; } = false;
 
     [JsonIgnore]
     public static string LocalSongsStorageDir =>
@@ -150,6 +157,44 @@ public class Configuration : IPluginConfiguration
     /// </summary>
     public static bool IsInStorage(string filePath) =>
         filePath.StartsWith(LocalSongsStorageDir, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Returns the number of local songs whose files exist but are not yet in plugin storage.
+    /// </summary>
+    public int CountSongsOutsideStorage() =>
+        LocalSongs.Values.Count(s => !IsInStorage(s.FilePath) && File.Exists(s.FilePath));
+
+    /// <summary>
+    /// Copies all local songs not already in storage into the plugin's storage folder and
+    /// updates their stored paths. Optionally deletes the original files afterwards.
+    /// Returns the number of songs successfully migrated.
+    /// </summary>
+    public int MigrateLocalSongsToStorage(bool deleteOriginals)
+    {
+        var migrated = 0;
+        foreach (var song in LocalSongs.Values)
+        {
+            if (IsInStorage(song.FilePath)) continue;
+            if (!File.Exists(song.FilePath)) continue;
+            try
+            {
+                var newPath = CopyToStorage(song.FilePath);
+                if (deleteOriginals)
+                {
+                    try { File.Delete(song.FilePath); }
+                    catch (Exception ex) { DalamudApi.PluginLog.Warning(ex, $"[LocalLibrary] Could not delete original '{song.FilePath}'"); }
+                }
+                song.FilePath = newPath;
+                migrated++;
+            }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Warning(ex, $"[LocalLibrary] Could not migrate '{song.FilePath}'");
+            }
+        }
+        if (migrated > 0) Save();
+        return migrated;
+    }
 
     private int FindNextAvailableDisplayId()
     {
