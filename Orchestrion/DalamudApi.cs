@@ -33,6 +33,7 @@ public class DalamudApi
     // [PluginService] public static IObjectTable ObjectTable { get; private set; }
     // [PluginService] public static IPartyFinderGui PartyFinderGui { get; private set; }
     // [PluginService] public static IPartyList PartyList { get; private set; }
+    [PluginService] public static INotificationManager NotificationManager { get; private set; }
     [PluginService] public static IPluginLog PluginLog { get; private set; }
     [PluginService] public static ISigScanner SigScanner { get; private set; }
     // [PluginService] public static ITargetManager TargetManager { get; private set; }

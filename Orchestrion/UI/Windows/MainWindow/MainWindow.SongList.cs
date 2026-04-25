@@ -19,10 +19,10 @@ public partial class MainWindow
 
 		// to keep the tab bar always visible and not have it get scrolled out
 		ImGui.BeginChild("##_songList_internal", ImGuiHelpers.ScaledVector2(-1f, -25f));
-		_mainSongList.Draw();
 
-		if (localCount > 0)
+		void DrawLocalSection()
 		{
+			if (localCount == 0) return;
 			ImGui.Spacing();
 			ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
 			ImGui.Separator();
@@ -31,6 +31,27 @@ public partial class MainWindow
 			ImGui.PopStyleColor();
 			ImGui.Spacing();
 			_localSongList.Draw();
+		}
+
+		if (Configuration.Instance.LocalSongsAtTop)
+		{
+			DrawLocalSection();
+			if (localCount > 0)
+			{
+				ImGui.Spacing();
+				ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
+				ImGui.Separator();
+				ImGui.Text("  Game Library");
+				ImGui.Separator();
+				ImGui.PopStyleColor();
+				ImGui.Spacing();
+			}
+			_mainSongList.Draw();
+		}
+		else
+		{
+			_mainSongList.Draw();
+			DrawLocalSection();
 		}
 
 		ImGui.EndChild();

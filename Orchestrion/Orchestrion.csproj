@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Dalamud.NET.Sdk/14.0.1">
   <PropertyGroup>
-    <PluginVersion>2.2.0.13</PluginVersion>
+    <PluginVersion>2.2.0.14</PluginVersion>
   </PropertyGroup>
   
   <PropertyGroup>
@@ -83,3 +83,4 @@
     <EmbeddedResource Include="Loc\zh.json" />
   </ItemGroup>
 </Project>
+
