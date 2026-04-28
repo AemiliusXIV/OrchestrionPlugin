@@ -107,6 +107,9 @@ public class OrchestrionPlugin : IDalamudPlugin, IDisposable
 
 		// Validate local song display IDs against the (now-loaded) game song list
 		Configuration.Instance.ValidateLocalSongIds();
+
+		// Self-heal a leftover BGM mute from a previous crashed/abrupt session
+		BGMManager.RestoreStuckMuteIfAny();
 	}
 
 	public static void LanguageChanged(string code)

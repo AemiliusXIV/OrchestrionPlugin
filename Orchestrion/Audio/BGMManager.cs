@@ -65,12 +65,22 @@ public static class BGMManager
     public static void Dispose()
     {
         DalamudApi.Framework.Update -= Update;
-        // Force-complete any pending fade before full shutdown
-        if (_localFadeMode != LocalFadeMode.None)
+
+        // Synchronously tear down local audio state — we cannot rely on fade-out
+        // completing because the framework Update loop has just been unhooked.
+        // If we leave the BGM muted here it persists in the game's character config.
+        if (_isPlayingLocalSong || _localFadeMode != LocalFadeMode.None)
         {
-            _localFadeMode = LocalFadeMode.None;
-            StopLocalMute();
+            LocalAudioPlayer.Stop();
+            _isPlayingLocalSong   = false;
+            _playingLocalSongId   = 0;
+            _isPlayingReplacement = false;
+            _localFadeMode        = LocalFadeMode.None;
+            _localFadeMultiplier  = 1f;
         }
+        // Always restore the game BGM mute, regardless of how we got here
+        StopLocalMute();
+
         Stop();
         LocalAudioPlayer.Dispose();
         OnSongChanged -= IpcUpdate;
@@ -249,7 +259,18 @@ public static class BGMManager
 
             DalamudApi.PluginLog.Debug($"[Play] Playing local song {songId} '{localSong.Name}'");
             MuteGameBgm();
-            LocalAudioPlayer.Play(localSong.FilePath, 0f);
+            try
+            {
+                LocalAudioPlayer.Play(localSong.FilePath, 0f);
+            }
+            catch (Exception ex)
+            {
+                // File is missing, corrupted, or unsupported — undo the mute we just applied
+                // so we don't leave the user with no audio at all.
+                DalamudApi.PluginLog.Warning(ex, $"[Play] Failed to play local song '{localSong.FilePath}' — restoring BGM");
+                StopLocalMute();
+                return;
+            }
             _localFadeMode = LocalFadeMode.FadeIn;
             _localFadeStartMs = Environment.TickCount64;
             _localFadeMultiplier = 0f;
@@ -284,6 +305,8 @@ public static class BGMManager
         {
             DalamudApi.GameConfig.System.Set("IsSndBgm", true);
             _mutedGameBgmForLocal = true;
+            Configuration.Instance.LocalAudioMutedGameBgm = true;
+            Configuration.Instance.Save();
         }
     }
 
@@ -292,6 +315,23 @@ public static class BGMManager
         if (!_mutedGameBgmForLocal) return;
         DalamudApi.GameConfig.System.Set("IsSndBgm", _originalGameBgmMute);
         _mutedGameBgmForLocal = false;
+        Configuration.Instance.LocalAudioMutedGameBgm = false;
+        Configuration.Instance.Save();
+    }
+
+    /// <summary>
+    /// If the last session crashed or unloaded while a local song was muting the
+    /// game BGM, the BGM mute would have stayed on (it persists in the character
+    /// config). On startup we detect this and restore the BGM unmute state so the
+    /// user doesn't end up with no music after a previous bad shutdown.
+    /// </summary>
+    public static void RestoreStuckMuteIfAny()
+    {
+        if (!Configuration.Instance.LocalAudioMutedGameBgm) return;
+        DalamudApi.PluginLog.Information("[BGMManager] Detected leftover BGM mute from previous session — restoring.");
+        DalamudApi.GameConfig.System.Set("IsSndBgm", false);
+        Configuration.Instance.LocalAudioMutedGameBgm = false;
+        Configuration.Instance.Save();
     }
 
     public static void Stop()

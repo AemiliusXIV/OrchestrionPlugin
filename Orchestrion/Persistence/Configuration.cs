@@ -49,6 +49,13 @@ public class Configuration : IPluginConfiguration
     public bool LocalSongsAtTop { get; set; } = false;
 
     /// <summary>
+    /// Set to true while a local song is muting the game BGM, persisted so that if
+    /// the plugin is killed mid-playback (crash, abrupt unload) we can detect on the
+    /// next startup that we left the game BGM muted and restore it automatically.
+    /// </summary>
+    public bool LocalAudioMutedGameBgm { get; set; } = false;
+
+    /// <summary>
     /// Set to true after the Local Library tab has been opened for the first time.
     /// Used to show a one-time introduction notification.
     /// </summary>
