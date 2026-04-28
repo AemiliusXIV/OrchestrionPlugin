@@ -16,7 +16,7 @@ https://raw.githubusercontent.com/AemiliusXIV/DalamudPlugins/main/repo.json
 ```
 Orchestrion will then appear in your Plugin Installer and update automatically when new releases are published.
 
-> This repository is part of a multi-plugin repo — any future plugins by AemiliusXIV will appear under the same link automatically.
+> **Note:** This is a fork of the original [Orchestrion plugin](https://github.com/perchbirdd/OrchestrionPlugin). Both cannot run at the same time — please disable the original Orchestrion before enabling this fork. Your existing settings and data should carry over automatically.
 
 ![Usage](https://github.com/ff-meli/OrchestrionPlugin/raw/master/gh/orch.gif)
 
