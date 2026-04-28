@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.x.x'
+
+      - name: Download Dalamud
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://goatcorp.github.io/dalamud-distrib/latest.zip -OutFile latest.zip
+          Expand-Archive -Force latest.zip "$env:AppData\XIVLauncher\addon\Hooks\dev"
+
+      - name: Set version from tag
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          $csprojPath = "Orchestrion/Orchestrion.csproj"
+          $csproj = Get-Content $csprojPath -Raw
+          $csproj = $csproj -replace '<PluginVersion>.*?</PluginVersion>', "<PluginVersion>$version</PluginVersion>"
+          Set-Content $csprojPath $csproj -Encoding UTF8
+          Write-Host "PluginVersion set to $version"
+
+      - name: Build
+        shell: pwsh
+        run: dotnet build Orchestrion/Orchestrion.csproj --configuration Release --nologo
+
+      - name: Verify build output
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "Orchestrion/bin/Release/orchestrion/latest.zip")) {
+            Write-Error "latest.zip not found after build"
+            exit 1
+          }
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          gh release create $version "Orchestrion/bin/Release/orchestrion/latest.zip" `
+            --repo ${{ github.repository }} `
+            --title "v$version" `
+            --notes "Release $version"
