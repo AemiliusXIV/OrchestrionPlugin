@@ -1,0 +1,16 @@
+name: Orchestrion 2
+author: AemiliusXIV (originally Meli, perchbird)
+description: |-
+  Orchestrion 2 lets you browse, search, and replace the in-game BGM with any track from the full
+  FFXIV soundtrack. It also supports playing your own local MP3 and WAV files as BGM replacements,
+  with fade transitions and volume sync to the game's master/BGM sliders.
+  A curated list of accurate song titles is included so you always know what's playing.
+punchline: Browse, replace, and extend the FFXIV BGM — including your own local audio files.
+repo_url: https://github.com/AemiliusXIV/OrchestrionPlugin
+tags:
+  - bgm
+  - music
+  - audio
+changelog: |-
+  Renamed to Orchestrion 2 to avoid collision with the official plugin in the main repo.
+  Import your settings and song replacements from the original Orchestrion plugin via the Settings window.

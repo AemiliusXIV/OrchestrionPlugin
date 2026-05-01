@@ -42,7 +42,7 @@ jobs:
       - name: Verify build output
         shell: pwsh
         run: |
-          if (-not (Test-Path "Orchestrion/bin/Release/orchestrion/latest.zip")) {
+          if (-not (Test-Path "Orchestrion/bin/Release/orchestrion2/latest.zip")) {
             Write-Error "latest.zip not found after build"
             exit 1
           }
@@ -53,7 +53,7 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}"
-          gh release create $version "Orchestrion/bin/Release/orchestrion/latest.zip" `
+          gh release create $version "Orchestrion/bin/Release/orchestrion2/latest.zip" `
             --repo ${{ github.repository }} `
             --title "v$version" `
             --notes "Release $version"

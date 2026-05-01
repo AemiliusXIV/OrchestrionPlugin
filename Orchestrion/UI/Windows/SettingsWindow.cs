@@ -18,6 +18,7 @@ namespace Orchestrion.UI.Windows;
 public class SettingsWindow : Window
 {
     private bool _deleteOriginalsOnMigrate = false;
+    private bool _importCompleted = false;
 
 	public SettingsWindow() : base("Orchestrion Settings###orchsettings", ImGuiWindowFlags.NoCollapse)
     {
@@ -319,6 +320,80 @@ public class SettingsWindow : Window
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
+
+        if (Configuration.OrchestrionConfigExists())
+        {
+            using (OrchestrionPlugin.LargeFont.Push())
+            {
+                ImGui.Text("Import from Orchestrion");
+            }
+
+            ImGui.TextWrapped(
+                "A config file from the original Orchestrion plugin was found. " +
+                "You can import your general settings, song replacements, and playlists into Orchestrion 2. " +
+                "Local Library songs are not imported.");
+
+            ImGui.Spacing();
+
+            if (_importCompleted)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.HealerGreen);
+                ImGui.TextUnformatted("Import complete.");
+                ImGui.PopStyleColor();
+            }
+            else
+            {
+                if (ImGui.Button("Import settings & song replacements##orchimport"))
+                    ImGui.OpenPopup("Confirm import##orchimportconfirm");
+            }
+
+            if (ImGui.BeginPopupModal("Confirm import##orchimportconfirm",
+                    ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoCollapse))
+            {
+                ImGui.TextUnformatted("This will overwrite your current Orchestrion 2 settings,");
+                ImGui.TextUnformatted("song replacements, and playlists with those from Orchestrion.");
+                ImGui.Spacing();
+                ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudOrange);
+                ImGui.TextUnformatted("Existing settings will be replaced. This cannot be undone.");
+                ImGui.PopStyleColor();
+                ImGui.Spacing();
+
+                if (ImGui.Button("Yes, import##orchimportyes"))
+                {
+                    var count = Configuration.Instance.ImportFromOrchestrion();
+                    if (count >= 0)
+                    {
+                        DalamudApi.NotificationManager.AddNotification(new Notification
+                        {
+                            Title   = "Orchestrion 2 — Import",
+                            Content = $"Import complete. {count} song replacement(s) imported.",
+                            Type    = NotificationType.Success,
+                        });
+                        _importCompleted = true;
+                    }
+                    else
+                    {
+                        DalamudApi.NotificationManager.AddNotification(new Notification
+                        {
+                            Title   = "Orchestrion 2 — Import",
+                            Content = "Import failed. Check the Dalamud log for details.",
+                            Type    = NotificationType.Error,
+                        });
+                    }
+                    ImGui.CloseCurrentPopup();
+                }
+
+                ImGui.SameLine();
+                if (ImGui.Button("Cancel##orchimportcancel"))
+                    ImGui.CloseCurrentPopup();
+
+                ImGui.EndPopup();
+            }
+
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+        }
 
         using (OrchestrionPlugin.LargeFont.Push())
         {
