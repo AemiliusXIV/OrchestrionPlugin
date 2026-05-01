@@ -50,6 +50,7 @@ public class OrchestrionPlugin : IDalamudPlugin, IDisposable
 	public OrchestrionPlugin(IDalamudPluginInterface pi)
 	{
 		DalamudApi.Initialize(pi);
+		MigrateConfigIfNeeded();
 		LanguageChanged(DalamudApi.PluginInterface.UiLanguage);
 
 		_dtrEntry = DalamudApi.DtrBar.Get(ConstName);
@@ -115,20 +116,51 @@ public class OrchestrionPlugin : IDalamudPlugin, IDisposable
 		CheckOrchestrionMigrationNotice();
 	}
 
+	/// <summary>
+	/// If no config exists for this install yet but an orchestrion2.json (or orchestrion.json)
+	/// is present, copy it across so users don't lose their settings after a rename.
+	/// Must be called before Configuration.Instance is first accessed.
+	/// </summary>
+	private static void MigrateConfigIfNeeded()
+	{
+		var newConfigPath = DalamudApi.PluginInterface.ConfigFile.FullName;
+		if (File.Exists(newConfigPath)) return;
+
+		var configDir = DalamudApi.PluginInterface.ConfigDirectory.Parent!.FullName;
+
+		// Prefer orchestrion2 config (direct predecessor), fall back to original orchestrion
+		var candidates = new[] { "orchestrion2.json", "orchestrion.json" };
+		foreach (var candidate in candidates)
+		{
+			var src = Path.Combine(configDir, candidate);
+			if (!File.Exists(src)) continue;
+			try
+			{
+				File.Copy(src, newConfigPath);
+				DalamudApi.PluginLog.Info($"[Migration] Copied {candidate} → {Path.GetFileName(newConfigPath)}");
+			}
+			catch (Exception ex)
+			{
+				DalamudApi.PluginLog.Warning(ex, $"[Migration] Failed to copy {candidate}");
+			}
+			return;
+		}
+	}
+
 	private static void CheckOrchestrionMigrationNotice()
 	{
 		var originalLoaded = DalamudApi.PluginInterface.InstalledPlugins
-			.Any(p => p.InternalName == "orchestrion" && p.IsLoaded);
+			.Any(p => (p.InternalName == "orchestrion" || p.InternalName == "orchestrion2") && p.IsLoaded);
 
 		if (originalLoaded)
 		{
 			// Warn every time — this is an active conflict that needs resolving.
 			DalamudApi.NotificationManager.AddNotification(new Dalamud.Interface.ImGuiNotification.Notification
 			{
-				Title   = "Orchestrion 2 — Conflict detected",
-				Content = "The original Orchestrion plugin is also active. " +
+				Title   = "Orchestrion Aria — Conflict detected",
+				Content = "An older version of Orchestrion is also active. " +
 				          "Please disable it in /xlplugins to avoid audio conflicts. " +
-				          "Once disabled, you can import your settings from the Orchestrion 2 Settings window.",
+				          "Once disabled, you can import your settings from the Orchestrion Aria Settings window.",
 				Type    = Dalamud.Interface.ImGuiNotification.NotificationType.Warning,
 			});
 			return;
@@ -139,7 +171,7 @@ public class OrchestrionPlugin : IDalamudPlugin, IDisposable
 		{
 			DalamudApi.NotificationManager.AddNotification(new Dalamud.Interface.ImGuiNotification.Notification
 			{
-				Title   = "Orchestrion 2 — Import available",
+				Title   = "Orchestrion Aria — Import available",
 				Content = "Original Orchestrion settings found. Open the Settings window to import your song replacements and playlists.",
 				Type    = Dalamud.Interface.ImGuiNotification.NotificationType.Info,
 			});
