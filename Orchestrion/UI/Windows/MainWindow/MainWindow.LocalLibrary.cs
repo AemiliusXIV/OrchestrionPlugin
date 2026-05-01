@@ -285,7 +285,8 @@ public partial class MainWindow
             }
 
             ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
-            ImGui.TextUnformatted(localSong.FilePath);
+            if (!Configuration.IsInStorage(localSong.FilePath))
+                ImGui.TextUnformatted(localSong.FilePath);
             ImGui.TextUnformatted($"Duration: {localSong.Duration:mm\\:ss}");
             ImGui.PopStyleColor();
 
