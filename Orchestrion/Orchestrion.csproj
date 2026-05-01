@@ -4,9 +4,9 @@
   </PropertyGroup>
   
   <PropertyGroup>
-    <AssemblyName>orchestrion</AssemblyName>
-    <AssemblyTitle>orchestrion</AssemblyTitle>
-    <Product>orchestrion</Product>
+    <AssemblyName>orchestrionaria</AssemblyName>
+    <AssemblyTitle>orchestrionaria</AssemblyTitle>
+    <Product>orchestrionaria</Product>
     <Authors>AemiliusXIV, Meli, perchbird</Authors>
     <Copyright>Copyright Â©  2021</Copyright>
     <OutputPath>bin\$(Configuration)\</OutputPath>

@@ -18,6 +18,8 @@ namespace Orchestrion.UI.Windows;
 public class SettingsWindow : Window
 {
     private bool _deleteOriginalsOnMigrate = false;
+    private Configuration.OrchestrionImportPreview? _importPreview;
+    private bool _importPreviewLoaded = false;
 
 	public SettingsWindow() : base("Orchestrion Settings###orchsettings", ImGuiWindowFlags.NoCollapse)
     {
@@ -319,6 +321,149 @@ public class SettingsWindow : Window
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
+
+        // Lazy-load the import preview once
+        if (!_importPreviewLoaded)
+        {
+            _importPreview = Configuration.OrchestrionConfigExists()
+                ? Configuration.PeekOrchestrionImport()
+                : null;
+            _importPreviewLoaded = true;
+        }
+
+        var orchConflict = DalamudApi.PluginInterface.InstalledPlugins
+            .Any(p => (p.InternalName == "orchestrion" || p.InternalName == "orchestrion2") && p.IsLoaded);
+
+        // Show the section only when there is something actionable:
+        // a conflict that needs resolving, or data that hasn't been imported yet
+        var hasImportableData = _importPreview is { ReplacementCount: > 0 } ||
+                                (_importPreview?.PlaylistNames.Count ?? 0) > 0;
+        var showImportSection = !Configuration.Instance.HasCompletedImport &&
+                                (orchConflict || hasImportableData);
+
+        if (showImportSection)
+        {
+            using (OrchestrionPlugin.LargeFont.Push())
+                ImGui.Text("Import from Orchestrion");
+
+            if (orchConflict)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudOrange);
+                ImGui.TextWrapped(
+                    "An older version of Orchestrion is currently active. " +
+                    "Running both plugins at the same time will cause audio conflicts. " +
+                    "Please disable it in /xlplugins first, then return here to import your settings.");
+                ImGui.PopStyleColor();
+            }
+            else
+            {
+                ImGui.TextWrapped(
+                    "A config file from a previous Orchestrion installation was found. " +
+                    "Import your song replacements, playlists, and general settings into Orchestrion Aria.");
+
+                ImGui.Spacing();
+
+                ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
+                ImGui.TextUnformatted("What will be imported:");
+                ImGui.PopStyleColor();
+
+                ImGui.Indent(16f * ImGuiHelpers.GlobalScale);
+
+                ImGui.Bullet();
+                ImGui.SameLine();
+                ImGui.TextUnformatted($"{_importPreview!.ReplacementCount} song replacement(s)");
+
+                if (_importPreview.PlaylistNames.Count > 0)
+                {
+                    ImGui.Bullet();
+                    ImGui.SameLine();
+                    ImGui.TextUnformatted(
+                        $"{_importPreview.PlaylistNames.Count} playlist(s): " +
+                        string.Join(", ", _importPreview.PlaylistNames));
+                }
+
+                ImGui.Bullet();
+                ImGui.SameLine();
+                ImGui.TextUnformatted("General settings (chat notifications, language, display preferences)");
+
+                ImGui.Unindent(16f * ImGuiHelpers.GlobalScale);
+                ImGui.Spacing();
+
+                if (ImGui.Button("Import settings & song replacements##orchimport"))
+                    ImGui.OpenPopup("Confirm import##orchimportconfirm");
+
+                if (ImGui.BeginPopupModal("Confirm import##orchimportconfirm",
+                        ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoCollapse))
+                {
+                    ImGui.TextUnformatted("The following will be imported from Orchestrion:");
+                    ImGui.Spacing();
+
+                    ImGui.Indent(12f * ImGuiHelpers.GlobalScale);
+
+                    ImGui.Bullet();
+                    ImGui.SameLine();
+                    ImGui.TextUnformatted($"{_importPreview.ReplacementCount} song replacement(s)");
+
+                    if (_importPreview.PlaylistNames.Count > 0)
+                    {
+                        ImGui.Bullet();
+                        ImGui.SameLine();
+                        ImGui.TextUnformatted(
+                            $"{_importPreview.PlaylistNames.Count} playlist(s): " +
+                            string.Join(", ", _importPreview.PlaylistNames));
+                    }
+
+                    ImGui.Bullet();
+                    ImGui.SameLine();
+                    ImGui.TextUnformatted("General settings");
+
+                    ImGui.Unindent(12f * ImGuiHelpers.GlobalScale);
+                    ImGui.Spacing();
+
+                    ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudOrange);
+                    ImGui.TextUnformatted("Existing Orchestrion Aria settings will be overwritten.");
+                    ImGui.TextUnformatted("This cannot be undone.");
+                    ImGui.PopStyleColor();
+                    ImGui.Spacing();
+
+                    if (ImGui.Button("Yes, import##orchimportyes"))
+                    {
+                        var count = Configuration.Instance.ImportFromOrchestrion();
+                        if (count >= 0)
+                        {
+                            DalamudApi.NotificationManager.AddNotification(new Notification
+                            {
+                                Title   = "Orchestrion Aria — Import",
+                                Content = $"Import complete. {count} song replacement(s) imported.",
+                                Type    = NotificationType.Success,
+                            });
+                            Configuration.Instance.HasCompletedImport = true;
+                            Configuration.Instance.Save();
+                        }
+                        else
+                        {
+                            DalamudApi.NotificationManager.AddNotification(new Notification
+                            {
+                                Title   = "Orchestrion Aria — Import",
+                                Content = "Import failed. Check the Dalamud log for details.",
+                                Type    = NotificationType.Error,
+                            });
+                        }
+                        ImGui.CloseCurrentPopup();
+                    }
+
+                    ImGui.SameLine();
+                    if (ImGui.Button("Cancel##orchimportcancel"))
+                        ImGui.CloseCurrentPopup();
+
+                    ImGui.EndPopup();
+                }
+            }
+
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+        }
 
         using (OrchestrionPlugin.LargeFont.Push())
         {

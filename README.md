@@ -3,7 +3,7 @@
 > **Based on [OrchestrionPlugin by perchbird & Meli](https://github.com/perchbirdd/OrchestrionPlugin).**
 > This repository adds local PC audio support (MP3/WAV) on top of the original plugin.
 
-# OrchestrionPlugin (AemiliusXIV fork)
+# Orchestrion Aria
 A plugin for [XIVLauncher](https://github.com/goaaats/FFXIVQuickLauncher) that adds a music player interface to control the in-game BGM,
 allowing you to set it to any in-game track you want — or play your own **local MP3/WAV files** as replacements.
 The BGM will persist through **most** changes of zone/instance/etc, and usually will stay active until you change it or click Stop.
@@ -12,11 +12,11 @@ You can search for tracks by name or by assorted metadata, such as zone, instanc
 ## Installation
 In-game, go to **ESC → Dalamud Settings → Experimental → Custom Plugin Repositories** and add:
 ```
-https://raw.githubusercontent.com/AemiliusXIV/DalamudPlugins/main/repo.json
+https://aemiliusxiv.github.io/DalamudPlugins/pluginmaster.json
 ```
-Orchestrion will then appear in your Plugin Installer and update automatically when new releases are published.
+Orchestrion Aria will then appear in your Plugin Installer and update automatically when new releases are published.
 
-> **Note:** This is a fork of the original [Orchestrion plugin](https://github.com/perchbirdd/OrchestrionPlugin). Both cannot run at the same time — please disable the original Orchestrion before enabling this fork. Your existing settings and data should carry over automatically.
+> **Note:** This is a fork of the original [Orchestrion plugin](https://github.com/perchbirdd/OrchestrionPlugin). Both cannot run at the same time — please disable the original Orchestrion before enabling Orchestrion Aria. Your existing settings and song replacements will be imported automatically on first load.
 
 ![Usage](https://github.com/ff-meli/OrchestrionPlugin/raw/master/gh/orch.gif)
 
