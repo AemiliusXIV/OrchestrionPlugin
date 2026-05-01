@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using NAudio.Wave;
 
 namespace Orchestrion.Audio;
@@ -12,6 +13,12 @@ public static class LocalAudioPlayer
     private static AudioFileReader? _audioReader;
 
     public static bool IsPlaying => _waveOut?.PlaybackState == PlaybackState.Playing;
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    private static bool IsGameFocused()
+        => GetForegroundWindow() == System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
 
     public static void Play(string filePath, float initialVolume = 1.0f)
     {
@@ -56,7 +63,12 @@ public static class LocalAudioPlayer
         DalamudApi.GameConfig.System.TryGet("SoundMaster", out uint masterVol);
         DalamudApi.GameConfig.System.TryGet("SoundBgm", out uint bgmVol);
 
-        _audioReader.Volume = isMasterMuted ? 0f : (masterVol / 100f) * (bgmVol / 100f) * fadeMultiplier;
+        // Mirror the game's own "play BGM when window is not active" setting.
+        // IsSoundBgmAlways = true means play even when unfocused; false means mute when unfocused.
+        DalamudApi.GameConfig.System.TryGet("IsSoundBgmAlways", out bool bgmAlways);
+        var unfocusedMute = !IsGameFocused() && !bgmAlways;
+
+        _audioReader.Volume = (isMasterMuted || unfocusedMute) ? 0f : (masterVol / 100f) * (bgmVol / 100f) * fadeMultiplier;
     }
 
     public static void Dispose() => Stop();
