@@ -336,22 +336,22 @@ public class SettingsWindow : Window
                 ImGui.Text("Import from Orchestrion");
 
             var originalLoaded = DalamudApi.PluginInterface.InstalledPlugins
-                .Any(p => p.InternalName == "orchestrion" && p.IsLoaded);
+                .Any(p => (p.InternalName == "orchestrion" || p.InternalName == "orchestrion2") && p.IsLoaded);
 
             if (originalLoaded)
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudOrange);
                 ImGui.TextWrapped(
-                    "The original Orchestrion plugin is currently active. " +
+                    "An older version of Orchestrion is currently active. " +
                     "Running both plugins at the same time will cause audio conflicts. " +
-                    "Please disable Orchestrion in /xlplugins first, then return here to import your settings.");
+                    "Please disable it in /xlplugins first, then return here to import your settings.");
                 ImGui.PopStyleColor();
             }
             else
             {
                 ImGui.TextWrapped(
-                    "A config file from the original Orchestrion plugin was found. " +
-                    "Import your song replacements, playlists, and general settings into Orchestrion 2.");
+                    "A config file from a previous Orchestrion installation was found. " +
+                    "Import your song replacements, playlists, and general settings into Orchestrion Aria.");
 
                 ImGui.Spacing();
 
@@ -429,7 +429,7 @@ public class SettingsWindow : Window
                     }
 
                     ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudOrange);
-                    ImGui.TextUnformatted("Existing Orchestrion 2 settings will be overwritten.");
+                    ImGui.TextUnformatted("Existing Orchestrion Aria settings will be overwritten.");
                     ImGui.TextUnformatted("This cannot be undone.");
                     ImGui.PopStyleColor();
                     ImGui.Spacing();
@@ -441,7 +441,7 @@ public class SettingsWindow : Window
                         {
                             DalamudApi.NotificationManager.AddNotification(new Notification
                             {
-                                Title   = "Orchestrion 2 — Import",
+                                Title   = "Orchestrion Aria — Import",
                                 Content = $"Import complete. {count} song replacement(s) imported.",
                                 Type    = NotificationType.Success,
                             });
@@ -451,7 +451,7 @@ public class SettingsWindow : Window
                         {
                             DalamudApi.NotificationManager.AddNotification(new Notification
                             {
-                                Title   = "Orchestrion 2 — Import",
+                                Title   = "Orchestrion Aria — Import",
                                 Content = "Import failed. Check the Dalamud log for details.",
                                 Type    = NotificationType.Error,
                             });
