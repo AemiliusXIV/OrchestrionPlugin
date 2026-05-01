@@ -61,6 +61,12 @@ public class Configuration : IPluginConfiguration
     /// </summary>
     public bool HasShownLocalLibraryIntro { get; set; } = false;
 
+    /// <summary>
+    /// Set to true once the startup import-available notification has been shown,
+    /// so it does not repeat on every subsequent launch.
+    /// </summary>
+    public bool HasShownImportNotice { get; set; } = false;
+
     [JsonIgnore]
     public static string LocalSongsStorageDir =>
         Path.Combine(DalamudApi.PluginInterface.ConfigDirectory.FullName, "LocalSongs");
@@ -262,12 +268,50 @@ public class Configuration : IPluginConfiguration
     // -------------------------------------------------------------------------
 
     /// <summary>
+    /// A read-only snapshot of what PeekOrchestrionImport found in orchestrion.json,
+    /// used to populate the confirmation popup before the user commits to importing.
+    /// </summary>
+    public record OrchestrionImportPreview(int ReplacementCount, List<string> PlaylistNames);
+
+    /// <summary>
     /// Returns true if the original Orchestrion plugin's config file exists on disk.
     /// Used to conditionally show the import button in Settings.
     /// </summary>
     public static bool OrchestrionConfigExists() =>
         File.Exists(Path.Combine(
             DalamudApi.PluginInterface.ConfigDirectory.Parent!.FullName, "orchestrion.json"));
+
+    /// <summary>
+    /// Reads orchestrion.json and returns a lightweight preview of what would be
+    /// imported (replacement count, playlist names) without modifying anything.
+    /// Returns null if the file is missing or cannot be parsed.
+    /// </summary>
+    public static OrchestrionImportPreview? PeekOrchestrionImport()
+    {
+        var path = Path.Combine(
+            DalamudApi.PluginInterface.ConfigDirectory.Parent!.FullName, "orchestrion.json");
+        if (!File.Exists(path)) return null;
+
+        try
+        {
+            var obj = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(path));
+
+            var replacements = obj["SongReplacements"]?
+                .ToObject<Dictionary<int, SongReplacementEntry>>();
+
+            var playlists = obj["Playlists"]?
+                .ToObject<Dictionary<string, Newtonsoft.Json.Linq.JObject>>();
+
+            return new OrchestrionImportPreview(
+                replacements?.Count ?? 0,
+                playlists?.Keys.ToList() ?? new List<string>());
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Warning(ex, "[Import] Could not peek orchestrion.json");
+            return null;
+        }
+    }
 
     /// <summary>
     /// Reads orchestrion.json from the sibling plugin config directory and merges its

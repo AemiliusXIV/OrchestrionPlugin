@@ -110,6 +110,42 @@ public class OrchestrionPlugin : IDalamudPlugin, IDisposable
 
 		// Self-heal a leftover BGM mute from a previous crashed/abrupt session
 		BGMManager.RestoreStuckMuteIfAny();
+
+		// Conflict / migration notices
+		CheckOrchestrionMigrationNotice();
+	}
+
+	private static void CheckOrchestrionMigrationNotice()
+	{
+		var originalLoaded = DalamudApi.PluginInterface.InstalledPlugins
+			.Any(p => p.InternalName == "orchestrion" && p.IsLoaded);
+
+		if (originalLoaded)
+		{
+			// Warn every time — this is an active conflict that needs resolving.
+			DalamudApi.NotificationManager.AddNotification(new Dalamud.Interface.ImGuiNotification.Notification
+			{
+				Title   = "Orchestrion 2 — Conflict detected",
+				Content = "The original Orchestrion plugin is also active. " +
+				          "Please disable it in /xlplugins to avoid audio conflicts. " +
+				          "Once disabled, you can import your settings from the Orchestrion 2 Settings window.",
+				Type    = Dalamud.Interface.ImGuiNotification.NotificationType.Warning,
+			});
+			return;
+		}
+
+		// One-time import-available hint when the old config is present
+		if (Configuration.OrchestrionConfigExists() && !Configuration.Instance.HasShownImportNotice)
+		{
+			DalamudApi.NotificationManager.AddNotification(new Dalamud.Interface.ImGuiNotification.Notification
+			{
+				Title   = "Orchestrion 2 — Import available",
+				Content = "Original Orchestrion settings found. Open the Settings window to import your song replacements and playlists.",
+				Type    = Dalamud.Interface.ImGuiNotification.NotificationType.Info,
+			});
+			Configuration.Instance.HasShownImportNotice = true;
+			Configuration.Instance.Save();
+		}
 	}
 
 	public static void LanguageChanged(string code)
