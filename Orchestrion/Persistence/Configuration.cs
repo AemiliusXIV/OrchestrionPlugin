@@ -61,6 +61,18 @@ public class Configuration : IPluginConfiguration
     /// </summary>
     public bool HasShownLocalLibraryIntro { get; set; } = false;
 
+    /// <summary>
+    /// Set to true once the startup import-available notification has been shown,
+    /// so it does not repeat on every subsequent launch.
+    /// </summary>
+    public bool HasShownImportNotice { get; set; } = false;
+
+    /// <summary>
+    /// Set to true after a successful import from a predecessor config,
+    /// so the import section in Settings is permanently hidden once done.
+    /// </summary>
+    public bool HasCompletedImport { get; set; } = false;
+
     [JsonIgnore]
     public static string LocalSongsStorageDir =>
         Path.Combine(DalamudApi.PluginInterface.ConfigDirectory.FullName, "LocalSongs");
@@ -255,5 +267,141 @@ public class Configuration : IPluginConfiguration
     public void Save()
     {
         DalamudApi.PluginInterface.SavePluginConfig(this);
+    }
+
+    // -------------------------------------------------------------------------
+    // Import from the official Orchestrion plugin
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// A read-only snapshot of what PeekOrchestrionImport found in orchestrion.json,
+    /// used to populate the confirmation popup before the user commits to importing.
+    /// </summary>
+    public record OrchestrionImportPreview(int ReplacementCount, List<string> PlaylistNames);
+
+    /// <summary>
+    /// Returns true if the original Orchestrion plugin's config file exists on disk.
+    /// Used to conditionally show the import button in Settings.
+    /// </summary>
+    public static bool OrchestrionConfigExists() =>
+        File.Exists(Path.Combine(
+            DalamudApi.PluginInterface.ConfigDirectory.Parent!.FullName, "orchestrion.json"));
+
+    /// <summary>
+    /// Reads orchestrion.json and returns a lightweight preview of what would be
+    /// imported (replacement count, playlist names) without modifying anything.
+    /// Returns null if the file is missing or cannot be parsed.
+    /// </summary>
+    public static OrchestrionImportPreview? PeekOrchestrionImport()
+    {
+        var path = Path.Combine(
+            DalamudApi.PluginInterface.ConfigDirectory.Parent!.FullName, "orchestrion.json");
+        if (!File.Exists(path)) return null;
+
+        try
+        {
+            var obj = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(path));
+
+            var replacements = obj["SongReplacements"]?
+                .ToObject<Dictionary<int, SongReplacementEntry>>();
+
+            var playlists = obj["Playlists"]?
+                .ToObject<Dictionary<string, Newtonsoft.Json.Linq.JObject>>();
+
+            return new OrchestrionImportPreview(
+                replacements?.Count ?? 0,
+                playlists?.Keys.ToList() ?? new List<string>());
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Warning(ex, "[Import] Could not peek orchestrion.json");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Reads orchestrion.json from the sibling plugin config directory and merges its
+    /// general settings, song replacements, and playlists into this configuration.
+    /// Local Library songs are intentionally not imported.
+    /// Returns the number of song replacements imported, or -1 on failure.
+    /// </summary>
+    public int ImportFromOrchestrion()
+    {
+        var oldConfigPath = Path.Combine(
+            DalamudApi.PluginInterface.ConfigDirectory.Parent!.FullName, "orchestrion.json");
+        if (!File.Exists(oldConfigPath)) return -1;
+
+        try
+        {
+            var json = File.ReadAllText(oldConfigPath);
+            var obj  = Newtonsoft.Json.Linq.JObject.Parse(json);
+
+            void TryBool(string key, Action<bool> set)
+            {
+                var t = obj[key];
+                if (t != null) set(t.ToObject<bool>());
+            }
+
+            void TryString(string key, Action<string> set)
+            {
+                var t = obj[key];
+                if (t != null && t.Type != Newtonsoft.Json.Linq.JTokenType.Null) set(t.ToObject<string>()!);
+            }
+
+            TryBool("ShowSongInTitleBar",             v => ShowSongInTitleBar             = v);
+            TryBool("ShowSongInChat",                 v => ShowSongInChat                 = v);
+            TryBool("ShowSongInNative",               v => ShowSongInNative               = v);
+            TryBool("ShowIdInNative",                 v => ShowIdInNative                 = v);
+            TryBool("HandleSpecialModes",             v => HandleSpecialModes             = v);
+            TryBool("ChatChannelMatchDalamud",        v => ChatChannelMatchDalamud        = v);
+            TryBool("ShowAltLangTitles",              v => ShowAltLangTitles              = v);
+            TryBool("UserInterfaceLanguageMatchDalamud", v => UserInterfaceLanguageMatchDalamud = v);
+            TryBool("DisableTooltips",                v => DisableTooltips                = v);
+            TryBool("ShowMiniPlayer",                 v => ShowMiniPlayer                 = v);
+            TryBool("MiniPlayerLock",                 v => MiniPlayerLock                 = v);
+
+            TryString("UserInterfaceLanguageCode", v => UserInterfaceLanguageCode = v);
+            TryString("AltTitleLanguageCode",      v => AltTitleLanguageCode      = v);
+            TryString("ServerInfoLanguageCode",    v => ServerInfoLanguageCode    = v);
+            TryString("ChatLanguageCode",          v => ChatLanguageCode          = v);
+
+            var opacityToken = obj["MiniPlayerOpacity"];
+            if (opacityToken != null) MiniPlayerOpacity = opacityToken.ToObject<float>();
+
+            var chatTypeToken = obj["ChatType"];
+            if (chatTypeToken != null) ChatType = (XivChatType)chatTypeToken.ToObject<int>();
+
+            // Song replacements — merge (existing entries are overwritten)
+            var importedCount = 0;
+            var replacementsToken = obj["SongReplacements"];
+            if (replacementsToken != null)
+            {
+                var dict = replacementsToken.ToObject<Dictionary<int, SongReplacementEntry>>();
+                if (dict != null)
+                {
+                    foreach (var (k, v) in dict)
+                        SongReplacements[k] = v;
+                    importedCount = dict.Count;
+                }
+            }
+
+            // Playlists — merge (existing playlists are overwritten by name)
+            var playlistsToken = obj["Playlists"];
+            if (playlistsToken != null)
+            {
+                var dict = playlistsToken.ToObject<Dictionary<string, Playlist>>();
+                if (dict != null)
+                    foreach (var (k, v) in dict)
+                        Playlists[k] = v;
+            }
+
+            Save();
+            return importedCount;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[Import] Failed to import settings from orchestrion.json");
+            return -1;
+        }
     }
 }
