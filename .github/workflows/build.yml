@@ -4,7 +4,13 @@ on:
   push:
     branches: '*'
     tags-ignore: '*'
+    paths:
+      - 'Orchestrion/**'
+      - '*.sln'
   pull_request:
+    paths:
+      - 'Orchestrion/**'
+      - '*.sln'
 
 jobs:
   build:
