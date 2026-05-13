@@ -12,5 +12,11 @@ tags:
   - music
   - audio
 changelog: |-
-  Renamed to Orchestrion Aria. Import your settings and song replacements from the original
-  Orchestrion plugin via the Settings window.
+  - Local Library: audio files imported into the plugin folder no longer show their internal file path.
+  - Import from Orchestrion: the import section in Settings is now explicit — no data is copied
+    automatically on first launch. A notification on first run will point you to Settings if a
+    previous Orchestrion config is detected.
+  - Import from Orchestrion: the confirmation popup now lets you choose which categories to import
+    (general settings, song replacements, playlists) via an Edit button. All are selected by default.
+  - Import from Orchestrion: the section now shows a success summary after importing, and is
+    permanently hidden on subsequent sessions once import is complete.
