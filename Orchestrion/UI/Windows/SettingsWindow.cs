@@ -120,10 +120,22 @@ public class SettingsWindow : Window
             () => Configuration.Instance.HandleSpecialModes, 
             b => Configuration.Instance.HandleSpecialModes = b);
         
-        Checkbox(Loc.Localize("DisableTooltips", 
-                "Disable tooltips throughout the plugin (Song List, Server Info)"), 
-            () => Configuration.Instance.DisableTooltips, 
+        Checkbox(Loc.Localize("DisableTooltips",
+                "Disable tooltips throughout the plugin (Song List, Server Info)"),
+            () => Configuration.Instance.DisableTooltips,
             b => Configuration.Instance.DisableTooltips = b);
+
+        Checkbox("Stop all BGM playback when entering a cutscene",
+            () => Configuration.Instance.DisableInCutscenes,
+            b => Configuration.Instance.DisableInCutscenes = b);
+
+        Checkbox("Stop song replacements when entering a cutscene (lets natural BGM play through)",
+            () => Configuration.Instance.DisableReplacementsInCutscenes,
+            b => Configuration.Instance.DisableReplacementsInCutscenes = b);
+
+        Checkbox("Suppress the in-game furnishing notification when an estate orchestrion changes track",
+            () => Configuration.Instance.DisableFurnishingMessages,
+            b => Configuration.Instance.DisableFurnishingMessages = b);
         
         if (!BGMAddressResolver.StreamingEnabled)
         {
