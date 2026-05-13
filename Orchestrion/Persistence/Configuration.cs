@@ -325,7 +325,7 @@ public class Configuration : IPluginConfiguration
     /// Local Library songs are intentionally not imported.
     /// Returns the number of song replacements imported, or -1 on failure.
     /// </summary>
-    public int ImportFromOrchestrion()
+    public int ImportFromOrchestrion(bool importSettings = true, bool importReplacements = true, bool importPlaylists = true)
     {
         var oldConfigPath = Path.Combine(
             DalamudApi.PluginInterface.ConfigDirectory.Parent!.FullName, "orchestrion.json");
@@ -336,63 +336,72 @@ public class Configuration : IPluginConfiguration
             var json = File.ReadAllText(oldConfigPath);
             var obj  = Newtonsoft.Json.Linq.JObject.Parse(json);
 
-            void TryBool(string key, Action<bool> set)
+            if (importSettings)
             {
-                var t = obj[key];
-                if (t != null) set(t.ToObject<bool>());
+                void TryBool(string key, Action<bool> set)
+                {
+                    var t = obj[key];
+                    if (t != null) set(t.ToObject<bool>());
+                }
+
+                void TryString(string key, Action<string> set)
+                {
+                    var t = obj[key];
+                    if (t != null && t.Type != Newtonsoft.Json.Linq.JTokenType.Null) set(t.ToObject<string>()!);
+                }
+
+                TryBool("ShowSongInTitleBar",                v => ShowSongInTitleBar                = v);
+                TryBool("ShowSongInChat",                    v => ShowSongInChat                    = v);
+                TryBool("ShowSongInNative",                  v => ShowSongInNative                  = v);
+                TryBool("ShowIdInNative",                    v => ShowIdInNative                    = v);
+                TryBool("HandleSpecialModes",                v => HandleSpecialModes                = v);
+                TryBool("ChatChannelMatchDalamud",           v => ChatChannelMatchDalamud           = v);
+                TryBool("ShowAltLangTitles",                 v => ShowAltLangTitles                 = v);
+                TryBool("UserInterfaceLanguageMatchDalamud", v => UserInterfaceLanguageMatchDalamud = v);
+                TryBool("DisableTooltips",                   v => DisableTooltips                   = v);
+                TryBool("ShowMiniPlayer",                    v => ShowMiniPlayer                    = v);
+                TryBool("MiniPlayerLock",                    v => MiniPlayerLock                    = v);
+
+                TryString("UserInterfaceLanguageCode", v => UserInterfaceLanguageCode = v);
+                TryString("AltTitleLanguageCode",      v => AltTitleLanguageCode      = v);
+                TryString("ServerInfoLanguageCode",    v => ServerInfoLanguageCode    = v);
+                TryString("ChatLanguageCode",          v => ChatLanguageCode          = v);
+
+                var opacityToken = obj["MiniPlayerOpacity"];
+                if (opacityToken != null) MiniPlayerOpacity = opacityToken.ToObject<float>();
+
+                var chatTypeToken = obj["ChatType"];
+                if (chatTypeToken != null) ChatType = (XivChatType)chatTypeToken.ToObject<int>();
             }
-
-            void TryString(string key, Action<string> set)
-            {
-                var t = obj[key];
-                if (t != null && t.Type != Newtonsoft.Json.Linq.JTokenType.Null) set(t.ToObject<string>()!);
-            }
-
-            TryBool("ShowSongInTitleBar",             v => ShowSongInTitleBar             = v);
-            TryBool("ShowSongInChat",                 v => ShowSongInChat                 = v);
-            TryBool("ShowSongInNative",               v => ShowSongInNative               = v);
-            TryBool("ShowIdInNative",                 v => ShowIdInNative                 = v);
-            TryBool("HandleSpecialModes",             v => HandleSpecialModes             = v);
-            TryBool("ChatChannelMatchDalamud",        v => ChatChannelMatchDalamud        = v);
-            TryBool("ShowAltLangTitles",              v => ShowAltLangTitles              = v);
-            TryBool("UserInterfaceLanguageMatchDalamud", v => UserInterfaceLanguageMatchDalamud = v);
-            TryBool("DisableTooltips",                v => DisableTooltips                = v);
-            TryBool("ShowMiniPlayer",                 v => ShowMiniPlayer                 = v);
-            TryBool("MiniPlayerLock",                 v => MiniPlayerLock                 = v);
-
-            TryString("UserInterfaceLanguageCode", v => UserInterfaceLanguageCode = v);
-            TryString("AltTitleLanguageCode",      v => AltTitleLanguageCode      = v);
-            TryString("ServerInfoLanguageCode",    v => ServerInfoLanguageCode    = v);
-            TryString("ChatLanguageCode",          v => ChatLanguageCode          = v);
-
-            var opacityToken = obj["MiniPlayerOpacity"];
-            if (opacityToken != null) MiniPlayerOpacity = opacityToken.ToObject<float>();
-
-            var chatTypeToken = obj["ChatType"];
-            if (chatTypeToken != null) ChatType = (XivChatType)chatTypeToken.ToObject<int>();
 
             // Song replacements — merge (existing entries are overwritten)
             var importedCount = 0;
-            var replacementsToken = obj["SongReplacements"];
-            if (replacementsToken != null)
+            if (importReplacements)
             {
-                var dict = replacementsToken.ToObject<Dictionary<int, SongReplacementEntry>>();
-                if (dict != null)
+                var replacementsToken = obj["SongReplacements"];
+                if (replacementsToken != null)
                 {
-                    foreach (var (k, v) in dict)
-                        SongReplacements[k] = v;
-                    importedCount = dict.Count;
+                    var dict = replacementsToken.ToObject<Dictionary<int, SongReplacementEntry>>();
+                    if (dict != null)
+                    {
+                        foreach (var (k, v) in dict)
+                            SongReplacements[k] = v;
+                        importedCount = dict.Count;
+                    }
                 }
             }
 
             // Playlists — merge (existing playlists are overwritten by name)
-            var playlistsToken = obj["Playlists"];
-            if (playlistsToken != null)
+            if (importPlaylists)
             {
-                var dict = playlistsToken.ToObject<Dictionary<string, Playlist>>();
-                if (dict != null)
-                    foreach (var (k, v) in dict)
-                        Playlists[k] = v;
+                var playlistsToken = obj["Playlists"];
+                if (playlistsToken != null)
+                {
+                    var dict = playlistsToken.ToObject<Dictionary<string, Playlist>>();
+                    if (dict != null)
+                        foreach (var (k, v) in dict)
+                            Playlists[k] = v;
+                }
             }
 
             Save();
