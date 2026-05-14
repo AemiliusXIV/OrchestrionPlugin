@@ -66,6 +66,34 @@ public static class Player
 		ImGui.SetCursorPosX(playlistTextX);
 		ImGui.Text(playlistTextStr);
 
+		// Quick Save button(s)
+		var audibleSong = BGMManager.CurrentAudibleSong;
+		if (Configuration.Instance.QuickSaveShowInPlayer && audibleSong != 0)
+		{
+			var pLabel = Configuration.Instance.QuickSavePrimaryLabel;
+			var btnWidth = ImGui.CalcTextSize(pLabel).X + ImGui.GetStyle().FramePadding.X * 2;
+			if (Configuration.Instance.QuickSaveTwoActionMode)
+			{
+				var sLabel = Configuration.Instance.QuickSaveSecondaryLabel;
+				btnWidth += ImGui.CalcTextSize(sLabel).X + ImGui.GetStyle().FramePadding.X * 2 + ImGui.GetStyle().ItemSpacing.X;
+			}
+			ImGui.SetCursorPosX((avail - btnWidth) / 2f);
+
+			if (ImGui.SmallButton($"{pLabel}##qs_primary"))
+				QuickSaveManager.SaveSong(audibleSong, Configuration.Instance.QuickSavePrimaryPlaylist);
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip($"Save to {Configuration.Instance.QuickSavePrimaryPlaylist}");
+
+			if (Configuration.Instance.QuickSaveTwoActionMode)
+			{
+				ImGui.SameLine();
+				if (ImGui.SmallButton($"{Configuration.Instance.QuickSaveSecondaryLabel}##qs_secondary"))
+					QuickSaveManager.SaveSong(audibleSong, Configuration.Instance.QuickSaveSecondaryPlaylist);
+				if (ImGui.IsItemHovered())
+					ImGui.SetTooltip($"Save to {Configuration.Instance.QuickSaveSecondaryPlaylist}");
+			}
+		}
+
 		// Draw progress bar
 		ImGui.PushStyleColor(ImGuiCol.PlotHistogram, ImGuiColors.DalamudWhite);
 		var frac = elapsed.TotalMilliseconds / total.TotalMilliseconds;
