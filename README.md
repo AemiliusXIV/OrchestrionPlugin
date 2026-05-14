@@ -1,7 +1,6 @@
 [![Latest release](https://img.shields.io/github/v/release/AemiliusXIV/OrchestrionPlugin)](https://github.com/AemiliusXIV/OrchestrionPlugin/releases)
 
 > **Based on [OrchestrionPlugin by perchbird & Meli](https://github.com/perchbirdd/OrchestrionPlugin).**
-> This repository adds local PC audio support (MP3/WAV) on top of the original plugin.
 
 # Orchestrion Aria
 A plugin for [XIVLauncher](https://github.com/goaaats/FFXIVQuickLauncher) that adds a music player interface to control the in-game BGM,
@@ -16,7 +15,7 @@ https://aemiliusxiv.github.io/DalamudPlugins/pluginmaster.json
 ```
 Orchestrion Aria will then appear in your Plugin Installer and update automatically when new releases are published.
 
-> **Note:** This is a fork of the original [Orchestrion plugin](https://github.com/perchbirdd/OrchestrionPlugin). Both cannot run at the same time — please disable the original Orchestrion before enabling Orchestrion Aria. Your existing settings and song replacements will be imported automatically on first load.
+> This is a fork of the original [Orchestrion plugin](https://github.com/perchbirdd/OrchestrionPlugin). Both cannot run at the same time — please disable the original Orchestrion before enabling Orchestrion Aria. If you have existing settings from the original Orchestrion plugin, you will be prompted to import them on first load.
 
 ![Usage](https://github.com/ff-meli/OrchestrionPlugin/raw/master/gh/orch.gif)
 
@@ -31,10 +30,13 @@ All the song information in the player is auto-updated from [this spreadsheet](h
 Feel free to comment in the document if you find any inconsistencies.
 
 ### Some new in-game music is out and I can't find it!
-If the tracks are new, it is possible that either the spreadsheet has not been updated yet.
+If the tracks are new, it is possible that the spreadsheet has not been updated yet.
 
 ### I have a suggestion/issue/concern!
-Open an issue on this repository, or find AemiliusXIV in the XIVLauncher Discord.
+Open an issue on this repository.
+
+### Why not open a PR on the original plugin?
+I maintain this as a personal fork — I build features I find useful without needing to align with the requirements of the official Dalamud plugin directory. I'm happy for others to use it, but that isn't the primary goal. If the original author would like to incorporate any of my work into his plugin, he is very welcome to reach out.
 
 ## Credits
 * [perchbird](https://github.com/perchbirdd) & [ff-meli](https://github.com/ff-meli), for the original OrchestrionPlugin this fork is based on
