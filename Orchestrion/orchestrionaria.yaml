@@ -12,11 +12,13 @@ tags:
   - music
   - audio
 changelog: |-
-  - Local Library: audio files imported into the plugin folder no longer show their internal file path.
-  - Import from Orchestrion: the import section in Settings is now explicit — no data is copied
-    automatically on first launch. A notification on first run will point you to Settings if a
-    previous Orchestrion config is detected.
-  - Import from Orchestrion: the confirmation popup now lets you choose which categories to import
-    (general settings, song replacements, playlists) via an Edit button. All are selected by default.
-  - Import from Orchestrion: the section now shows a success summary after importing, and is
-    permanently hidden on subsequent sessions once import is complete.
+  - Quick Save: a [Save] link now appears in song echo chat messages, letting you bookmark the
+    currently playing song to a playlist with one click — no need to leave combat or remember the name.
+  - Quick Save: a Save button also appears in the Player (main window and mini player) while a song
+    is playing.
+  - Quick Save: songs are saved to a "Listen Later" playlist by default, which clears automatically
+    when you exit the game. Character switch clearing is a separate toggle, off by default.
+  - Quick Save: optional area summary — when you change zone, a chat message lists every song you
+    saved during that area.
+  - Quick Save: fully configurable in Settings — single or two-action mode, target playlists, button
+    labels, confirmation echoes, and clear behaviour.

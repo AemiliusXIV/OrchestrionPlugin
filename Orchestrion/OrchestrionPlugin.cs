@@ -50,6 +50,7 @@ public unsafe class OrchestrionPlugin : IDalamudPlugin, IDisposable
 	private readonly Hook<RaptureLogModule.Delegates.ShowLogMessageUInt> _logMessageHook;
 	private SeString _songEchoMsg;
 	private bool _inCutscene;
+	private bool _logoutPending;
 
 	public OrchestrionPlugin(IDalamudPluginInterface pi)
 	{
@@ -63,6 +64,8 @@ public unsafe class OrchestrionPlugin : IDalamudPlugin, IDisposable
 		BGMAddressResolver.Init();
 		BGMManager.OnSongChanged += OnSongChanged;
 		BGMManager.OnInnSongPlayed += UpdateInnSongInfo;
+		QuickSaveManager.Initialize();
+		DalamudApi.ClientState.TerritoryChanged += OnTerritoryChanged;
 
 		_windowSystem = new WindowSystem();
 		_mainWindow = new MainWindow(this);
@@ -84,6 +87,7 @@ public unsafe class OrchestrionPlugin : IDalamudPlugin, IDisposable
 
 		DalamudApi.Framework.Update += OrchestrionUpdate;
 		DalamudApi.ClientState.Logout += ClientStateOnLogout;
+		DalamudApi.ClientState.Login  += ClientStateOnLogin;
 		DalamudApi.PluginInterface.LanguageChanged += LanguageChanged;
 
 		_logMessageHook = DalamudApi.Hooks.HookFromAddress<RaptureLogModule.Delegates.ShowLogMessageUInt>(
@@ -170,12 +174,20 @@ public unsafe class OrchestrionPlugin : IDalamudPlugin, IDisposable
 	{
 		DalamudApi.PluginInterface.LanguageChanged -= LanguageChanged;
 
+		DalamudApi.ClientState.TerritoryChanged -= OnTerritoryChanged;
 		DalamudApi.ClientState.Logout -= ClientStateOnLogout;
+		DalamudApi.ClientState.Login  -= ClientStateOnLogin;
 		DalamudApi.Framework.Update -= OrchestrionUpdate;
+
+		// If a logout happened and no Login followed (full game exit, not a character switch),
+		// apply the full-logout clear now while services are still valid.
+		if (_logoutPending && Configuration.Instance.QuickSaveClearOnLogout)
+			ClearListenLaterPlaylist();
 
 		BGMManager.OnInnSongPlayed -= UpdateInnSongInfo;
 		BGMManager.OnSongChanged -= OnSongChanged;
 
+		QuickSaveManager.Dispose();
 		_logMessageHook.Dispose();
 		PlaylistManager.Dispose();
 		BGMManager.Dispose();
@@ -262,6 +274,26 @@ public unsafe class OrchestrionPlugin : IDalamudPlugin, IDisposable
 	private void ClientStateOnLogout(int type, int code)
 	{
 		BGMManager.Stop();
+		_logoutPending = true;
+	}
+
+	private void ClientStateOnLogin()
+	{
+		// Login fired after a Logout — this is a character switch, not a full exit.
+		if (_logoutPending && Configuration.Instance.QuickSaveClearOnCharacterSwitch)
+			ClearListenLaterPlaylist();
+		_logoutPending = false;
+	}
+
+	/// <summary>
+	/// Clears the primary quick-save playlist. Caller is responsible for checking
+	/// the relevant setting (ClearOnLogout or ClearOnCharacterSwitch) before calling.
+	/// </summary>
+	private void ClearListenLaterPlaylist()
+	{
+		if (!Configuration.Instance.TryGetPlaylist(Configuration.Instance.QuickSavePrimaryPlaylist, out var playlist)) return;
+		playlist.Songs.Clear();
+		Configuration.Instance.Save();
 	}
 
 	private void OnSongChanged(int oldSong, int newSong, int oldSecondSong, int oldCurrentSong, bool oldPlayedByOrch, bool playedByOrch)
@@ -563,6 +595,7 @@ public unsafe class OrchestrionPlugin : IDalamudPlugin, IDisposable
 		{
 			if (!Configuration.Instance.LocalSongs.TryGetValue(songId, out var localSong)) return;
 			_songEchoMsg = BuildChatMessageFormatted(Loc.Localize("NowPlayingEcho", "Now playing <i>{0}</i>."), localSong.Name, playedByOrch);
+			QuickSaveManager.AppendQuickSaveLinks(_songEchoMsg);
 			return;
 		}
 
@@ -571,7 +604,10 @@ public unsafe class OrchestrionPlugin : IDalamudPlugin, IDisposable
 
 		// the actual echoing is done during framework update
 		if (!string.IsNullOrEmpty(songName))
+		{
 			_songEchoMsg = BuildChatMessageFormatted(Loc.Localize("NowPlayingEcho", "Now playing <i>{0}</i>."), songName, playedByOrch);
+			QuickSaveManager.AppendQuickSaveLinks(_songEchoMsg);
+		}
 	}
 
 	private void UpdateInnSongInfo(string trackDtrName, string trackChatName)
@@ -589,7 +625,33 @@ public unsafe class OrchestrionPlugin : IDalamudPlugin, IDisposable
 			if (!Configuration.Instance.ShowSongInChat) return;
 			if (!DalamudApi.ClientState.IsLoggedIn) return;
 			_songEchoMsg = BuildChatMessageFormatted(Loc.Localize("NowPlayingEcho", "Now playing <i>{0}</i>."), trackChatName, false);
+			QuickSaveManager.AppendQuickSaveLinks(_songEchoMsg);
 		}
+	}
+
+	private void OnTerritoryChanged(uint territoryTypeId)
+	{
+		if (!Configuration.Instance.QuickSaveTerritoryChangeSummary) return;
+		if (QuickSaveManager.SessionSavedSongs.Count == 0) return;
+
+		var names = QuickSaveManager.SessionSavedSongs.Select(s => s.Name).ToList();
+		var sb = new SeStringBuilder()
+			.AddUiForeground("[Orchestrion] ", 35)
+			.AddText("Songs saved this area: ");
+		for (var i = 0; i < names.Count; i++)
+		{
+			if (i > 0) sb.AddText(", ");
+			sb.AddItalics(names[i]);
+		}
+		sb.AddText(".");
+
+		DalamudApi.ChatGui.Print(new XivChatEntry
+		{
+			Message = sb.Build(),
+			Type = Configuration.Instance.ChatType,
+		});
+
+		QuickSaveManager.ClearSessionSaves();
 	}
 
 	private unsafe bool IsLoadingScreen()

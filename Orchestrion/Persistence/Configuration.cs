@@ -76,6 +76,44 @@ public class Configuration : IPluginConfiguration
     /// </summary>
     public bool HasCompletedImport { get; set; } = false;
 
+    // ── Quick Save ────────────────────────────────────────────────────────────
+
+    /// <summary>When true, a [Save] link is appended to song echo chat messages.</summary>
+    public bool QuickSaveShowInChat { get; set; } = true;
+
+    /// <summary>When true, a Quick Save button appears in the Player component.</summary>
+    public bool QuickSaveShowInPlayer { get; set; } = true;
+
+    /// <summary>
+    /// When true, two links appear in chat ([Save] and [♥]) targeting separate playlists.
+    /// When false, only the primary link is shown.
+    /// </summary>
+    public bool QuickSaveTwoActionMode { get; set; } = false;
+
+    /// <summary>Playlist targeted by the primary quick-save action. Auto-created on first save.</summary>
+    public string QuickSavePrimaryPlaylist { get; set; } = "Listen Later";
+
+    /// <summary>Playlist targeted by the secondary quick-save action. Auto-created on first save.</summary>
+    public string QuickSaveSecondaryPlaylist { get; set; } = "Favorites";
+
+    /// <summary>Label shown for the primary action link/button.</summary>
+    public string QuickSavePrimaryLabel { get; set; } = "Save";
+
+    /// <summary>Label shown for the secondary action link/button.</summary>
+    public string QuickSaveSecondaryLabel { get; set; } = "♥";
+
+    /// <summary>When true, a confirmation echo is printed after each save.</summary>
+    public bool QuickSaveConfirmationEcho { get; set; } = true;
+
+    /// <summary>When true, a summary of saved songs is printed on territory change.</summary>
+    public bool QuickSaveTerritoryChangeSummary { get; set; } = true;
+
+    /// <summary>When true, the primary quick-save playlist is cleared when exiting the game.</summary>
+    public bool QuickSaveClearOnLogout { get; set; } = true;
+
+    /// <summary>When true, the primary quick-save playlist is also cleared on character switch.</summary>
+    public bool QuickSaveClearOnCharacterSwitch { get; set; } = false;
+
     [JsonIgnore]
     public static string LocalSongsStorageDir =>
         Path.Combine(DalamudApi.PluginInterface.ConfigDirectory.FullName, "LocalSongs");

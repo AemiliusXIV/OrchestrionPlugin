@@ -573,5 +573,91 @@ public class SettingsWindow : Window
         ImGui.TextWrapped(Loc.Localize("MiniPlayerOpacity", "Mini player opacity"));
         ImGui.PopItemWidth();
         ImGui.PopItemWidth();
+
+        // ── Quick Save Settings ───────────────────────────────────────────────
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (OrchestrionPlugin.LargeFont.Push())
+            ImGui.Text("Quick Save Settings");
+
+        Checkbox("Show [Save] link in song echo chat messages",
+            () => Configuration.Instance.QuickSaveShowInChat,
+            b => Configuration.Instance.QuickSaveShowInChat = b);
+
+        Checkbox("Show Quick Save button in Player (main window and mini player)",
+            () => Configuration.Instance.QuickSaveShowInPlayer,
+            b => Configuration.Instance.QuickSaveShowInPlayer = b);
+
+        Checkbox("Print confirmation message after saving",
+            () => Configuration.Instance.QuickSaveConfirmationEcho,
+            b => Configuration.Instance.QuickSaveConfirmationEcho = b);
+
+        Checkbox("Print summary of saved songs when changing area",
+            () => Configuration.Instance.QuickSaveTerritoryChangeSummary,
+            b => Configuration.Instance.QuickSaveTerritoryChangeSummary = b);
+
+        Checkbox($"Clear '{Configuration.Instance.QuickSavePrimaryPlaylist}' when exiting the game",
+            () => Configuration.Instance.QuickSaveClearOnLogout,
+            b => Configuration.Instance.QuickSaveClearOnLogout = b);
+
+        Checkbox($"Clear '{Configuration.Instance.QuickSavePrimaryPlaylist}' on character switch",
+            () => Configuration.Instance.QuickSaveClearOnCharacterSwitch,
+            b => Configuration.Instance.QuickSaveClearOnCharacterSwitch = b);
+
+        ImGui.Spacing();
+
+        Checkbox("Two-action mode (show a separate secondary link/button)",
+            () => Configuration.Instance.QuickSaveTwoActionMode,
+            b => Configuration.Instance.QuickSaveTwoActionMode = b);
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // Primary action
+        ImGui.TextUnformatted("Primary label:");
+        ImGui.SameLine();
+        var primaryLabel = Configuration.Instance.QuickSavePrimaryLabel;
+        ImGui.SetNextItemWidth(80f * ImGuiHelpers.GlobalScale);
+        if (ImGui.InputText("##qs_plabel", ref primaryLabel, 32))
+        {
+            Configuration.Instance.QuickSavePrimaryLabel = string.IsNullOrWhiteSpace(primaryLabel) ? "Save" : primaryLabel;
+            Configuration.Instance.Save();
+        }
+
+        var playlistNames = Configuration.Instance.Playlists.Keys.ToList();
+        DropDown("##qs_pplaylist",
+            () => Configuration.Instance.QuickSavePrimaryPlaylist,
+            s => Configuration.Instance.QuickSavePrimaryPlaylist = s,
+            s => s == Configuration.Instance.QuickSavePrimaryPlaylist,
+            playlistNames);
+        ImGui.SameLine();
+        ImGui.TextUnformatted("Target playlist for primary action (auto-created on first save)");
+
+        // Secondary action — greyed out when two-action mode is off
+        ImGui.BeginDisabled(!Configuration.Instance.QuickSaveTwoActionMode);
+        ImGui.Spacing();
+
+        ImGui.TextUnformatted("Secondary label:");
+        ImGui.SameLine();
+        var secondaryLabel = Configuration.Instance.QuickSaveSecondaryLabel;
+        ImGui.SetNextItemWidth(80f * ImGuiHelpers.GlobalScale);
+        if (ImGui.InputText("##qs_slabel", ref secondaryLabel, 32))
+        {
+            Configuration.Instance.QuickSaveSecondaryLabel = string.IsNullOrWhiteSpace(secondaryLabel) ? "♥" : secondaryLabel;
+            Configuration.Instance.Save();
+        }
+
+        DropDown("##qs_splaylist",
+            () => Configuration.Instance.QuickSaveSecondaryPlaylist,
+            s => Configuration.Instance.QuickSaveSecondaryPlaylist = s,
+            s => s == Configuration.Instance.QuickSaveSecondaryPlaylist,
+            playlistNames);
+        ImGui.SameLine();
+        ImGui.TextUnformatted("Target playlist for secondary action");
+
+        ImGui.EndDisabled();
     }
 }
