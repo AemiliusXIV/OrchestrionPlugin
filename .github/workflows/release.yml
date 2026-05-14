@@ -69,9 +69,12 @@ jobs:
           set -euo pipefail
           VERSION="${{ github.ref_name }}"
 
-          # Read changelog and API level from the built zip
-          CHANGELOG=$(unzip -p Orchestrion/bin/Release/orchestrionaria/latest.zip orchestrionaria.json | jq -r '.Changelog // empty')
-          API_LEVEL=$(unzip -p Orchestrion/bin/Release/orchestrionaria/latest.zip orchestrionaria.json | jq '.DalamudApiLevel // empty')
+          # Download the release zip from the GitHub Release just created
+          gh release download "$VERSION" --repo ${{ github.repository }} --pattern "latest.zip" --output latest.zip
+
+          # Read changelog and API level from the downloaded zip
+          CHANGELOG=$(unzip -p latest.zip orchestrionaria.json | jq -r '.Changelog // empty')
+          API_LEVEL=$(unzip -p latest.zip orchestrionaria.json | jq '.DalamudApiLevel // empty')
 
           RESPONSE=$(gh api repos/AemiliusXIV/DalamudPlugins/contents/pluginmaster.json)
           SHA=$(echo "$RESPONSE" | jq -r '.sha')
