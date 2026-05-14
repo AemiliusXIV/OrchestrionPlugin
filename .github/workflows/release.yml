@@ -69,6 +69,10 @@ jobs:
           set -euo pipefail
           VERSION="${{ github.ref_name }}"
 
+          # Read changelog and API level from the built zip
+          CHANGELOG=$(unzip -p Orchestrion/bin/Release/orchestrionaria/latest.zip orchestrionaria.json | jq -r '.Changelog // empty')
+          API_LEVEL=$(unzip -p Orchestrion/bin/Release/orchestrionaria/latest.zip orchestrionaria.json | jq '.DalamudApiLevel // empty')
+
           RESPONSE=$(gh api repos/AemiliusXIV/DalamudPlugins/contents/pluginmaster.json)
           SHA=$(echo "$RESPONSE" | jq -r '.sha')
           CONTENT=$(echo "$RESPONSE" | jq -r '.content' | base64 -d)
@@ -76,7 +80,11 @@ jobs:
           NEW_CONTENT=$(echo "$CONTENT" | jq \
             --arg v "$VERSION" \
             --arg n "orchestrionaria" \
-            '(.[] | select(.InternalName==$n) | .AssemblyVersion) = $v')
+            --arg cl "$CHANGELOG" \
+            --argjson al "$API_LEVEL" \
+            '(.[] | select(.InternalName==$n) | .AssemblyVersion) = $v |
+             (.[] | select(.InternalName==$n) | .Changelog) = $cl |
+             (.[] | select(.InternalName==$n) | .DalamudApiLevel) = $al')
 
           ENCODED=$(echo "$NEW_CONTENT" | base64 -w 0)
 
