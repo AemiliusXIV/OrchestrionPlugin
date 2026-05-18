@@ -82,46 +82,42 @@ public class SettingsWindow : Window
     
     public override void Draw()
 	{
+        // ── General Settings ──────────────────────────────────────────────────
         using (OrchestrionPlugin.LargeFont.Push())
-        {
-            ImGui.Text(Loc.Localize("GeneralSettings", "General Settings"));    
-        }
-        
-        ImGui.PushItemWidth(500f);
-        
+            ImGui.Text(Loc.Localize("GeneralSettings", "General Settings"));
+
         Checkbox(Loc.Localize("ShowSongTitleBar",
             "Show current song in player title bar"),
             () => Configuration.Instance.ShowSongInTitleBar,
             b => Configuration.Instance.ShowSongInTitleBar = b);
-        
+
         Checkbox(Loc.Localize("ShowNowPlayingChat",
-            "Show \"Now playing\" messages in game chat when the current song changes"), 
+            "Show \"Now playing\" messages in game chat when the current song changes"),
             () => Configuration.Instance.ShowSongInChat,
             b => Configuration.Instance.ShowSongInChat = b);
 
         Checkbox(Loc.Localize("ShowSongServerInfo",
             "Show current song in the \"server info\" UI element in-game"),
-            () => Configuration.Instance.ShowSongInNative, 
+            () => Configuration.Instance.ShowSongInNative,
             b => Configuration.Instance.ShowSongInNative = b);
 
-        if (!Configuration.Instance.ShowSongInNative)
-            ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
-        
-        Checkbox(Loc.Localize("ShowSongIdServerInfo", 
-            "Show song ID in the \"server info\" UI element in-game"), 
-            () => Configuration.Instance.ShowIdInNative, 
-            b => Configuration.Instance.ShowIdInNative = b); 
-        
-        if (!Configuration.Instance.ShowSongInNative)
-            ImGui.PopStyleVar();
-        
-        Checkbox(Loc.Localize("HandleSpecialModes", 
-            "Handle special \"in-combat\" and mount movement BGM modes"), 
-            () => Configuration.Instance.HandleSpecialModes, 
+        if (Configuration.Instance.ShowSongInNative)
+        {
+            ImGui.Indent(30f * ImGuiHelpers.GlobalScale);
+            Checkbox(Loc.Localize("ShowSongIdServerInfo",
+                "Show song ID in the \"server info\" UI element in-game"),
+                () => Configuration.Instance.ShowIdInNative,
+                b => Configuration.Instance.ShowIdInNative = b);
+            ImGui.Indent(-30f * ImGuiHelpers.GlobalScale);
+        }
+
+        Checkbox(Loc.Localize("HandleSpecialModes",
+            "Handle special \"in-combat\" and mount movement BGM modes"),
+            () => Configuration.Instance.HandleSpecialModes,
             b => Configuration.Instance.HandleSpecialModes = b);
-        
+
         Checkbox(Loc.Localize("DisableTooltips",
-                "Disable tooltips throughout the plugin (Song List, Server Info)"),
+            "Disable tooltips throughout the plugin (Song List, Server Info)"),
             () => Configuration.Instance.DisableTooltips,
             b => Configuration.Instance.DisableTooltips = b);
 
@@ -136,20 +132,20 @@ public class SettingsWindow : Window
         Checkbox("Suppress the in-game furnishing notification when an estate orchestrion changes track",
             () => Configuration.Instance.DisableFurnishingMessages,
             b => Configuration.Instance.DisableFurnishingMessages = b);
-        
+
         if (!BGMAddressResolver.StreamingEnabled)
         {
             ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudRed);
-            ImGui.TextWrapped(Loc.Localize("AudioStreamingDisabledWarning" , 
+            ImGui.TextWrapped(Loc.Localize("AudioStreamingDisabledWarning",
                 "Audio streaming is disabled. This may be due to Sound Filter or a third-party plugin. The above setting may not work as " +
-                              "expected and you may encounter other audio issues such as popping or tracks not swapping channels. This is not" +
-                              " related to the Orchestrion Plugin."));
+                "expected and you may encounter other audio issues such as popping or tracks not swapping channels. This is not" +
+                " related to the Orchestrion Plugin."));
             ImGui.PopStyleColor();
         }
-        
-        Checkbox(Loc.Localize("UseDalamudChannelSetting", 
-                "Use the chat channel selected in Dalamud's settings for Orchestrion's chat messages (default)"),
-            () => Configuration.Instance.ChatChannelMatchDalamud, 
+
+        Checkbox(Loc.Localize("UseDalamudChannelSetting",
+            "Use the chat channel selected in Dalamud's settings for Orchestrion's chat messages (default)"),
+            () => Configuration.Instance.ChatChannelMatchDalamud,
             b => Configuration.Instance.ChatChannelMatchDalamud = b,
             b =>
             {
@@ -158,28 +154,155 @@ public class SettingsWindow : Window
                 Configuration.Instance.Save();
             });
 
-        ImGui.BeginDisabled(Configuration.Instance.ChatChannelMatchDalamud);
-        ImGui.Indent(30f * ImGuiHelpers.GlobalScale);
-        DropDown(Loc.Localize("ChatChannelSetting", "Chat channel used for Orchestrion messages"), 
-            () => Configuration.Instance.ChatType.ToString(), 
-            s => Configuration.Instance.ChatType = Enum.Parse<XivChatType>(s), 
-            s => s == Configuration.Instance.ChatType.ToString(), 
-            Enum.GetValues<XivChatType>().Select(c => c.ToString()).ToList());
-        ImGui.Indent(-1 * 30f * ImGuiHelpers.GlobalScale);
-        ImGui.EndDisabled();
+        if (!Configuration.Instance.ChatChannelMatchDalamud)
+        {
+            ImGui.Indent(30f * ImGuiHelpers.GlobalScale);
+            DropDown(Loc.Localize("ChatChannelSetting", "Chat channel used for Orchestrion messages"),
+                () => Configuration.Instance.ChatType.ToString(),
+                s => Configuration.Instance.ChatType = Enum.Parse<XivChatType>(s),
+                s => s == Configuration.Instance.ChatType.ToString(),
+                Enum.GetValues<XivChatType>().Select(c => c.ToString()).ToList());
+            ImGui.Indent(-30f * ImGuiHelpers.GlobalScale);
+        }
 
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
 
+        // ── Mini Player Settings ──────────────────────────────────────────────
         using (OrchestrionPlugin.LargeFont.Push())
+            ImGui.Text(Loc.Localize("MiniPlayerSettings", "Mini Player Settings"));
+
+        Checkbox(Loc.Localize("ShowMiniPlayer", "Show mini player"),
+            () => Configuration.Instance.ShowMiniPlayer,
+            b => Configuration.Instance.ShowMiniPlayer = b);
+
+        if (Configuration.Instance.ShowMiniPlayer)
         {
-            ImGui.Text(Loc.Localize("LocSettings", "Localization Settings"));
+            ImGui.Indent(30f * ImGuiHelpers.GlobalScale);
+
+            Checkbox(Loc.Localize("LockMiniPlayer", "Lock mini player"),
+                () => Configuration.Instance.MiniPlayerLock,
+                b => Configuration.Instance.MiniPlayerLock = b);
+
+            var miniPlayerOpacity = Configuration.Instance.MiniPlayerOpacity;
+            ImGui.PushItemWidth(200f);
+            if (ImGui.SliderFloat("##orch_MiniPlayerOpacity", ref miniPlayerOpacity, 0.01f, 1.0f))
+            {
+                Configuration.Instance.MiniPlayerOpacity = miniPlayerOpacity;
+                Configuration.Instance.Save();
+            }
+            ImGui.PopItemWidth();
+            ImGui.SameLine();
+            ImGui.TextWrapped(Loc.Localize("MiniPlayerOpacity", "Mini player opacity"));
+
+            ImGui.Indent(-30f * ImGuiHelpers.GlobalScale);
         }
-        
-        Checkbox(Loc.Localize("UseDalamudLanguageSetting", 
-                "Use the language selected in Dalamud's settings for the Orchestrion Plugin's UI"),
-            () => Configuration.Instance.UserInterfaceLanguageMatchDalamud, 
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // ── Quick Save Settings ───────────────────────────────────────────────
+        using (OrchestrionPlugin.LargeFont.Push())
+            ImGui.Text("Quick Save Settings");
+
+        Checkbox("Show [Save] link in song echo chat messages",
+            () => Configuration.Instance.QuickSaveShowInChat,
+            b => Configuration.Instance.QuickSaveShowInChat = b);
+
+        Checkbox("Show Quick Save button in Player (main window and mini player)",
+            () => Configuration.Instance.QuickSaveShowInPlayer,
+            b => Configuration.Instance.QuickSaveShowInPlayer = b);
+
+        Checkbox("Print confirmation message after saving",
+            () => Configuration.Instance.QuickSaveConfirmationEcho,
+            b => Configuration.Instance.QuickSaveConfirmationEcho = b);
+
+        Checkbox("Print summary of saved songs when changing area",
+            () => Configuration.Instance.QuickSaveTerritoryChangeSummary,
+            b => Configuration.Instance.QuickSaveTerritoryChangeSummary = b);
+
+        Checkbox("Hide Quick Save in main cities and residential zones",
+            () => Configuration.Instance.QuickSaveHideInCommonZones,
+            b => Configuration.Instance.QuickSaveHideInCommonZones = b);
+
+        Checkbox($"Clear '{Configuration.Instance.QuickSavePrimaryPlaylist}' when exiting the game",
+            () => Configuration.Instance.QuickSaveClearOnLogout,
+            b => Configuration.Instance.QuickSaveClearOnLogout = b);
+
+        Checkbox($"Clear '{Configuration.Instance.QuickSavePrimaryPlaylist}' on character switch",
+            () => Configuration.Instance.QuickSaveClearOnCharacterSwitch,
+            b => Configuration.Instance.QuickSaveClearOnCharacterSwitch = b);
+
+        ImGui.Spacing();
+        Checkbox("Two-action mode (show a separate secondary link/button)",
+            () => Configuration.Instance.QuickSaveTwoActionMode,
+            b => Configuration.Instance.QuickSaveTwoActionMode = b);
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // Primary action label + playlist
+        ImGui.TextUnformatted("Button label:");
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("The text shown on the clickable save link in chat\nand on the button in the Player. Default: \"Save\"");
+        ImGui.SameLine();
+        var primaryLabel = Configuration.Instance.QuickSavePrimaryLabel;
+        ImGui.SetNextItemWidth(80f * ImGuiHelpers.GlobalScale);
+        if (ImGui.InputText("##qs_plabel", ref primaryLabel, 32))
+        {
+            Configuration.Instance.QuickSavePrimaryLabel = string.IsNullOrWhiteSpace(primaryLabel) ? "Save" : primaryLabel;
+            Configuration.Instance.Save();
+        }
+
+        var playlistNames = Configuration.Instance.Playlists.Keys.ToList();
+        DropDown("##qs_pplaylist",
+            () => Configuration.Instance.QuickSavePrimaryPlaylist,
+            s => Configuration.Instance.QuickSavePrimaryPlaylist = s,
+            s => s == Configuration.Instance.QuickSavePrimaryPlaylist,
+            playlistNames);
+        ImGui.SameLine();
+        ImGui.TextUnformatted("Target playlist (auto-created on first save if missing)");
+
+        // Secondary action — only shown when two-action mode is on
+        if (Configuration.Instance.QuickSaveTwoActionMode)
+        {
+            ImGui.Spacing();
+
+            ImGui.TextUnformatted("Secondary button label:");
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("The text shown on the secondary save link in chat\nand on the second button in the Player. Default: \"♥\"");
+            ImGui.SameLine();
+            var secondaryLabel = Configuration.Instance.QuickSaveSecondaryLabel;
+            ImGui.SetNextItemWidth(80f * ImGuiHelpers.GlobalScale);
+            if (ImGui.InputText("##qs_slabel", ref secondaryLabel, 32))
+            {
+                Configuration.Instance.QuickSaveSecondaryLabel = string.IsNullOrWhiteSpace(secondaryLabel) ? "♥" : secondaryLabel;
+                Configuration.Instance.Save();
+            }
+
+            DropDown("##qs_splaylist",
+                () => Configuration.Instance.QuickSaveSecondaryPlaylist,
+                s => Configuration.Instance.QuickSaveSecondaryPlaylist = s,
+                s => s == Configuration.Instance.QuickSaveSecondaryPlaylist,
+                playlistNames);
+            ImGui.SameLine();
+            ImGui.TextUnformatted("Target playlist for secondary action");
+        }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // ── Localization Settings ─────────────────────────────────────────────
+        using (OrchestrionPlugin.LargeFont.Push())
+            ImGui.Text(Loc.Localize("LocSettings", "Localization Settings"));
+
+        Checkbox(Loc.Localize("UseDalamudLanguageSetting",
+            "Use the language selected in Dalamud's settings for the Orchestrion Plugin's UI"),
+            () => Configuration.Instance.UserInterfaceLanguageMatchDalamud,
             b => Configuration.Instance.UserInterfaceLanguageMatchDalamud = b,
             b =>
             {
@@ -189,63 +312,61 @@ public class SettingsWindow : Window
                 OrchestrionPlugin.LanguageChanged(Configuration.Instance.UserInterfaceLanguageCode);
             });
 
-        ImGui.BeginDisabled(Configuration.Instance.UserInterfaceLanguageMatchDalamud);
-        ImGui.Indent(30f * ImGuiHelpers.GlobalScale);
-        DropDown(Loc.Localize("UILanguageSetting",
+        if (!Configuration.Instance.UserInterfaceLanguageMatchDalamud)
+        {
+            ImGui.Indent(30f * ImGuiHelpers.GlobalScale);
+            DropDown(Loc.Localize("UILanguageSetting",
                 "Language used for the Orchestrion Plugin's UI"),
-            () => Util.LangCodeToLanguage(Configuration.Instance.UserInterfaceLanguageCode),
-            s => Configuration.Instance.UserInterfaceLanguageCode = s,
-            s => s == Configuration.Instance.UserInterfaceLanguageCode,
-            Util.AvailableLanguages,
-            Util.LangCodeToLanguage,
-            _ =>
-            {
-                OrchestrionPlugin.LanguageChanged(Configuration.Instance.UserInterfaceLanguageCode);
-            });
-        ImGui.Indent(-1 * 30f * ImGuiHelpers.GlobalScale);
-        ImGui.EndDisabled();
-        
-        Checkbox(Loc.Localize("ShowAltLangTitles", 
-                "Show alternate language song titles in tooltips"), 
-            () => Configuration.Instance.ShowAltLangTitles, 
+                () => Util.LangCodeToLanguage(Configuration.Instance.UserInterfaceLanguageCode),
+                s => Configuration.Instance.UserInterfaceLanguageCode = s,
+                s => s == Configuration.Instance.UserInterfaceLanguageCode,
+                Util.AvailableLanguages,
+                Util.LangCodeToLanguage,
+                _ => OrchestrionPlugin.LanguageChanged(Configuration.Instance.UserInterfaceLanguageCode));
+            ImGui.Indent(-30f * ImGuiHelpers.GlobalScale);
+        }
+
+        Checkbox(Loc.Localize("ShowAltLangTitles",
+            "Show alternate language song titles in tooltips"),
+            () => Configuration.Instance.ShowAltLangTitles,
             b => Configuration.Instance.ShowAltLangTitles = b);
-        
-        ImGui.BeginDisabled(!Configuration.Instance.ShowAltLangTitles);
-        ImGui.Indent(30f * ImGuiHelpers.GlobalScale);
-        DropDown(Loc.Localize("AltLangLanguageSetting", 
-            "Alternate language for song titles in tooltips"), 
-            () => Util.LangCodeToLanguage(Configuration.Instance.AltTitleLanguageCode), 
-            s => Configuration.Instance.AltTitleLanguageCode = s, 
-            s => s == Configuration.Instance.AltTitleLanguageCode, 
+
+        if (Configuration.Instance.ShowAltLangTitles)
+        {
+            ImGui.Indent(30f * ImGuiHelpers.GlobalScale);
+            DropDown(Loc.Localize("AltLangLanguageSetting",
+                "Alternate language for song titles in tooltips"),
+                () => Util.LangCodeToLanguage(Configuration.Instance.AltTitleLanguageCode),
+                s => Configuration.Instance.AltTitleLanguageCode = s,
+                s => s == Configuration.Instance.AltTitleLanguageCode,
+                Util.AvailableTitleLanguages,
+                Util.LangCodeToLanguage);
+            ImGui.Indent(-30f * ImGuiHelpers.GlobalScale);
+        }
+
+        DropDown(Loc.Localize("ServerInfoLanguageSetting",
+            "Language used for song titles in the \"server info\" UI element in-game"),
+            () => Util.LangCodeToLanguage(Configuration.Instance.ServerInfoLanguageCode),
+            s => Configuration.Instance.ServerInfoLanguageCode = s,
+            s => s == Configuration.Instance.ServerInfoLanguageCode,
             Util.AvailableTitleLanguages,
             Util.LangCodeToLanguage);
-        ImGui.Indent(-1 * 30f * ImGuiHelpers.GlobalScale);
-        ImGui.EndDisabled();
-        
-        DropDown(Loc.Localize("ServerInfoLanguageSetting", 
-                "Language used for song titles in the \"server info\" UI element in-game"), 
-            () => Util.LangCodeToLanguage(Configuration.Instance.ServerInfoLanguageCode), 
-            s => Configuration.Instance.ServerInfoLanguageCode = s, 
-            s => s == Configuration.Instance.ServerInfoLanguageCode, 
+
+        DropDown(Loc.Localize("ChatMessageLanguageSetting",
+            "Language used for song titles in Orchestrion chat messages in-game"),
+            () => Util.LangCodeToLanguage(Configuration.Instance.ChatLanguageCode),
+            s => Configuration.Instance.ChatLanguageCode = s,
+            s => s == Configuration.Instance.ChatLanguageCode,
             Util.AvailableTitleLanguages,
             Util.LangCodeToLanguage);
-        
-        DropDown(Loc.Localize("ChatMessageLanguageSetting", 
-                "Language used for song titles in Orchestrion chat messages in-game"), 
-            () => Util.LangCodeToLanguage(Configuration.Instance.ChatLanguageCode), 
-            s => Configuration.Instance.ChatLanguageCode = s, 
-            s => s == Configuration.Instance.ChatLanguageCode, 
-            Util.AvailableTitleLanguages,
-            Util.LangCodeToLanguage);
-        
+
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
 
+        // ── Local Library Settings ────────────────────────────────────────────
         using (OrchestrionPlugin.LargeFont.Push())
-        {
             ImGui.Text("Local Library Settings");
-        }
 
         Checkbox("Copy imported audio files into the plugin's storage folder (recommended)\nKeeps songs working even if the original file is moved or deleted.",
             () => Configuration.Instance.CopyLocalSongsToStorage,
@@ -335,10 +456,7 @@ public class SettingsWindow : Window
             Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true });
         }
 
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
+        // ── Import from Orchestrion ───────────────────────────────────────────
         // Lazy-load the import preview once
         if (!_importPreviewLoaded)
         {
@@ -352,7 +470,7 @@ public class SettingsWindow : Window
             .Any(p => (p.InternalName == "orchestrion" || p.InternalName == "orchestrion2") && p.IsLoaded);
 
         // Show the section only when there is something actionable:
-        // a conflict that needs resolving, or data that hasn't been imported yet
+        // a conflict that needs resolving, or data that hasn't been imported/dismissed yet
         var hasImportableData = _importPreview is { ReplacementCount: > 0 } ||
                                 (_importPreview?.PlaylistNames.Count ?? 0) > 0;
         var showImportSection = _importSuccessMessage != null ||
@@ -360,6 +478,10 @@ public class SettingsWindow : Window
 
         if (showImportSection)
         {
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+
             using (OrchestrionPlugin.LargeFont.Push())
                 ImGui.Text("Import from Orchestrion");
 
@@ -414,13 +536,21 @@ public class SettingsWindow : Window
 
                 if (ImGui.Button("Import settings & song replacements##orchimport"))
                 {
-                    // Reset to defaults every time the popup opens
                     _importEditMode     = false;
                     _importSettings     = true;
                     _importReplacements = _importPreview!.ReplacementCount > 0;
                     _importPlaylists    = _importPreview.PlaylistNames.Count > 0;
                     ImGui.OpenPopup("Confirm import##orchimportconfirm");
                 }
+
+                ImGui.SameLine();
+                if (ImGui.SmallButton("Already done — don't show again##orchimportdismiss"))
+                {
+                    Configuration.Instance.HasCompletedImport = true;
+                    Configuration.Instance.Save();
+                }
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Hides this section permanently.\nUse this if you have already set things up manually.");
 
                 if (ImGui.BeginPopupModal("Confirm import##orchimportconfirm",
                         ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoCollapse))
@@ -432,7 +562,6 @@ public class SettingsWindow : Window
 
                     if (_importEditMode)
                     {
-                        // Editable checkboxes
                         var s = _importSettings;
                         if (ImGui.Checkbox("##importSettings", ref s)) _importSettings = s;
                         ImGui.SameLine();
@@ -464,7 +593,6 @@ public class SettingsWindow : Window
                     }
                     else
                     {
-                        // Read-only summary of what is selected
                         if (_importSettings)
                         {
                             ImGui.Bullet(); ImGui.SameLine();
@@ -543,121 +671,6 @@ public class SettingsWindow : Window
                     ImGui.EndPopup();
                 }
             }
-
-            ImGui.Spacing();
-            ImGui.Separator();
-            ImGui.Spacing();
         }
-
-        using (OrchestrionPlugin.LargeFont.Push())
-        {
-            ImGui.Text(Loc.Localize("MiniPlayerSettings", "Mini Player Settings"));
-        }
-        
-        Checkbox(Loc.Localize("ShowMiniPlayer", "Show mini player"),
-            () => Configuration.Instance.ShowMiniPlayer, 
-            b => Configuration.Instance.ShowMiniPlayer = b);
-
-        Checkbox(Loc.Localize("LockMiniPlayer", "Lock mini player"), 
-            () => Configuration.Instance.MiniPlayerLock, 
-            b => Configuration.Instance.MiniPlayerLock = b);
-        
-        var miniPlayerOpacity = Configuration.Instance.MiniPlayerOpacity;
-        ImGui.PushItemWidth(200f);
-        if (ImGui.SliderFloat($"##orch_MiniPlayerOpacity", ref miniPlayerOpacity, 0.01f, 1.0f))
-        {
-            Configuration.Instance.MiniPlayerOpacity = miniPlayerOpacity;
-            Configuration.Instance.Save();
-        }
-        ImGui.SameLine();
-        ImGui.TextWrapped(Loc.Localize("MiniPlayerOpacity", "Mini player opacity"));
-        ImGui.PopItemWidth();
-        ImGui.PopItemWidth();
-
-        // ── Quick Save Settings ───────────────────────────────────────────────
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
-        using (OrchestrionPlugin.LargeFont.Push())
-            ImGui.Text("Quick Save Settings");
-
-        Checkbox("Show [Save] link in song echo chat messages",
-            () => Configuration.Instance.QuickSaveShowInChat,
-            b => Configuration.Instance.QuickSaveShowInChat = b);
-
-        Checkbox("Show Quick Save button in Player (main window and mini player)",
-            () => Configuration.Instance.QuickSaveShowInPlayer,
-            b => Configuration.Instance.QuickSaveShowInPlayer = b);
-
-        Checkbox("Print confirmation message after saving",
-            () => Configuration.Instance.QuickSaveConfirmationEcho,
-            b => Configuration.Instance.QuickSaveConfirmationEcho = b);
-
-        Checkbox("Print summary of saved songs when changing area",
-            () => Configuration.Instance.QuickSaveTerritoryChangeSummary,
-            b => Configuration.Instance.QuickSaveTerritoryChangeSummary = b);
-
-        Checkbox($"Clear '{Configuration.Instance.QuickSavePrimaryPlaylist}' when exiting the game",
-            () => Configuration.Instance.QuickSaveClearOnLogout,
-            b => Configuration.Instance.QuickSaveClearOnLogout = b);
-
-        Checkbox($"Clear '{Configuration.Instance.QuickSavePrimaryPlaylist}' on character switch",
-            () => Configuration.Instance.QuickSaveClearOnCharacterSwitch,
-            b => Configuration.Instance.QuickSaveClearOnCharacterSwitch = b);
-
-        ImGui.Spacing();
-
-        Checkbox("Two-action mode (show a separate secondary link/button)",
-            () => Configuration.Instance.QuickSaveTwoActionMode,
-            b => Configuration.Instance.QuickSaveTwoActionMode = b);
-
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
-        // Primary action
-        ImGui.TextUnformatted("Primary label:");
-        ImGui.SameLine();
-        var primaryLabel = Configuration.Instance.QuickSavePrimaryLabel;
-        ImGui.SetNextItemWidth(80f * ImGuiHelpers.GlobalScale);
-        if (ImGui.InputText("##qs_plabel", ref primaryLabel, 32))
-        {
-            Configuration.Instance.QuickSavePrimaryLabel = string.IsNullOrWhiteSpace(primaryLabel) ? "Save" : primaryLabel;
-            Configuration.Instance.Save();
-        }
-
-        var playlistNames = Configuration.Instance.Playlists.Keys.ToList();
-        DropDown("##qs_pplaylist",
-            () => Configuration.Instance.QuickSavePrimaryPlaylist,
-            s => Configuration.Instance.QuickSavePrimaryPlaylist = s,
-            s => s == Configuration.Instance.QuickSavePrimaryPlaylist,
-            playlistNames);
-        ImGui.SameLine();
-        ImGui.TextUnformatted("Target playlist for primary action (auto-created on first save)");
-
-        // Secondary action — greyed out when two-action mode is off
-        ImGui.BeginDisabled(!Configuration.Instance.QuickSaveTwoActionMode);
-        ImGui.Spacing();
-
-        ImGui.TextUnformatted("Secondary label:");
-        ImGui.SameLine();
-        var secondaryLabel = Configuration.Instance.QuickSaveSecondaryLabel;
-        ImGui.SetNextItemWidth(80f * ImGuiHelpers.GlobalScale);
-        if (ImGui.InputText("##qs_slabel", ref secondaryLabel, 32))
-        {
-            Configuration.Instance.QuickSaveSecondaryLabel = string.IsNullOrWhiteSpace(secondaryLabel) ? "♥" : secondaryLabel;
-            Configuration.Instance.Save();
-        }
-
-        DropDown("##qs_splaylist",
-            () => Configuration.Instance.QuickSaveSecondaryPlaylist,
-            s => Configuration.Instance.QuickSaveSecondaryPlaylist = s,
-            s => s == Configuration.Instance.QuickSaveSecondaryPlaylist,
-            playlistNames);
-        ImGui.SameLine();
-        ImGui.TextUnformatted("Target playlist for secondary action");
-
-        ImGui.EndDisabled();
     }
 }

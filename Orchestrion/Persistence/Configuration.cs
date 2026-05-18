@@ -114,6 +114,12 @@ public class Configuration : IPluginConfiguration
     /// <summary>When true, the primary quick-save playlist is also cleared on character switch.</summary>
     public bool QuickSaveClearOnCharacterSwitch { get; set; } = false;
 
+    /// <summary>
+    /// When true, Quick Save links and buttons are hidden in main city and residential zones,
+    /// where ambient tracks repeat frequently and are unlikely to need bookmarking.
+    /// </summary>
+    public bool QuickSaveHideInCommonZones { get; set; } = false;
+
     [JsonIgnore]
     public static string LocalSongsStorageDir =>
         Path.Combine(DalamudApi.PluginInterface.ConfigDirectory.FullName, "LocalSongs");

@@ -68,7 +68,7 @@ public static class Player
 
 		// Quick Save button(s)
 		var audibleSong = BGMManager.CurrentAudibleSong;
-		if (Configuration.Instance.QuickSaveShowInPlayer && audibleSong != 0)
+		if (Configuration.Instance.QuickSaveShowInPlayer && audibleSong != 0 && !QuickSaveManager.IsHiddenByZone())
 		{
 			var pLabel = Configuration.Instance.QuickSavePrimaryLabel;
 			var btnWidth = ImGui.CalcTextSize(pLabel).X + ImGui.GetStyle().FramePadding.X * 2;

@@ -25,6 +25,45 @@ public static class QuickSaveManager
     public static IReadOnlyList<(int Id, string Name)> SessionSavedSongs => _sessionSavedSongs;
 
     // -------------------------------------------------------------------------
+    // Common zone exclusion list
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Territory IDs for main city hubs and residential districts.
+    /// Quick Save is optionally hidden in these zones to reduce noise from
+    /// frequently-repeating ambient tracks.
+    /// </summary>
+    private static readonly HashSet<uint> CommonZoneTerritoryIds = new()
+    {
+        // --- City hubs ---
+        128, 129,       // Limsa Lominsa (Upper / Lower Decks)
+        130, 131,       // Ul'dah (Steps of Nald / Steps of Thal)
+        132, 133,       // Gridania (New / Old)
+        418,            // Foundation (Ishgard)
+        478,            // Idyllshire
+        628,            // Kugane
+        635,            // Rhalgr's Reach
+        819, 820,       // The Crystarium / Eulmore
+        962, 963,       // Old Sharlayan / Radz-at-Han
+        1185, 1186,     // Tuliyollal / Solution Nine (Dawntrail)
+
+        // --- Residential districts ---
+        339,            // Mist
+        340,            // The Lavender Beds
+        341,            // The Goblet
+        649,            // Shirogane
+        979,            // Empyreum
+    };
+
+    /// <summary>
+    /// Returns true when the player is in a common city or residential zone
+    /// and the HideInCommonZones setting is enabled.
+    /// </summary>
+    public static bool IsHiddenByZone() =>
+        Configuration.Instance.QuickSaveHideInCommonZones &&
+        CommonZoneTerritoryIds.Contains(DalamudApi.ClientState.TerritoryType);
+
+    // -------------------------------------------------------------------------
     // Lifecycle
     // -------------------------------------------------------------------------
 
@@ -106,6 +145,7 @@ public static class QuickSaveManager
     {
         if (!Configuration.Instance.QuickSaveShowInChat) return;
         if (_primaryPayload == null) return;
+        if (IsHiddenByZone()) return;
 
         msg.Payloads.Add(new TextPayload(" ["));
         msg.Payloads.Add(_primaryPayload);

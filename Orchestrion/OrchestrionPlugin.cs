@@ -228,8 +228,10 @@ public unsafe class OrchestrionPlugin : IDalamudPlugin, IDisposable
 
 	private unsafe void OnLogMessage(RaptureLogModule* thisPtr, uint logMessageId, uint value)
 	{
-		// Message ID 3433 is the in-game "Now playing: {track}" furnishing notification
-		if (logMessageId == 3433 && Configuration.Instance.DisableFurnishingMessages)
+		// Message ID 3433 is the in-game "Now playing: {track}" furnishing notification.
+		// Suppress it when the plugin is already echoing the song (ShowSongInChat) to avoid
+		// the double-echo, or when the user has explicitly opted to hide it.
+		if (logMessageId == 3433 && (Configuration.Instance.DisableFurnishingMessages || Configuration.Instance.ShowSongInChat))
 			return;
 		_logMessageHook.Original(thisPtr, logMessageId, value);
 	}
@@ -588,6 +590,7 @@ public unsafe class OrchestrionPlugin : IDalamudPlugin, IDisposable
 
 	private void UpdateChat(int songId, bool playedByOrch = false)
 	{
+		if (songId == 0) return;
 		if (!Configuration.Instance.ShowSongInChat) return;
 		if (!DalamudApi.ClientState.IsLoggedIn) return;
 

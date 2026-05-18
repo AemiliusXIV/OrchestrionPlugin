@@ -20,5 +20,15 @@ changelog: |-
     when you exit the game. Character switch clearing is a separate toggle, off by default.
   - Quick Save: optional area summary — when you change zone, a chat message lists every song you
     saved during that area.
-  - Quick Save: fully configurable in Settings — single or two-action mode, target playlists, button
-    labels, confirmation echoes, and clear behaviour.
+  - Quick Save: optional "Hide in cities and residential zones" setting to reduce noise from
+    frequently-repeating ambient tracks.
+  - Quick Save: fully configurable — single or two-action mode, target playlists, button labels,
+    confirmation echoes, and clear behaviour.
+  - Fixed: Quick Save link no longer appears on the "now playing" echo when music stops.
+  - Fixed: estate orchestrion track changes no longer produce a duplicate chat message when
+    "Show now playing in chat" is enabled.
+  - Settings: sub-settings now collapse when their parent toggle is off, reducing visual clutter.
+  - Settings: sections reordered — Mini Player and Quick Save appear before Localization and
+    Local Library; the Import section moves to the bottom.
+  - Settings: added a "Already done — don't show again" button to the Import section for players
+    who have already set things up manually.
