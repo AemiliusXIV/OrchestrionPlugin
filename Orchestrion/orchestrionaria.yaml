@@ -12,6 +12,8 @@ tags:
   - music
   - audio
 changelog: |-
+  - Fixed: Deep Dungeon mode without a specific playlist now correctly
+    cycles tracks instead of staying on the first song.
   - Quick Save: a [Save] link now appears in song echo chat messages, letting you bookmark the
     currently playing song to a playlist with one click — no need to leave combat or remember the name.
   - Quick Save: a Save button also appears in the Player (main window and mini player) while a song
