@@ -58,6 +58,17 @@ public static class PlaylistManager
 		Next();
 	}
 	
+	/// <summary>
+	/// Realigns the wall-clock timer after the user seeks within a local song, so the
+	/// playlist advances at the right moment instead of jumping early or late.
+	/// </summary>
+	public static void NotifyLocalSeek(TimeSpan position)
+	{
+		if (!IsPlaying) return;
+		if (!LocalSong.IsLocalId(CurrentSongId)) return;
+		_currentSongStartTime = Environment.TickCount64 - (long)position.TotalMilliseconds;
+	}
+
 	public static void Play(string playlistName)
 	{
 		if (BGMManager.InnMusicActive()) return;

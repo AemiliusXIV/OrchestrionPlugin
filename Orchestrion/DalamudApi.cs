@@ -37,7 +37,7 @@ public class DalamudApi
     [PluginService] public static IPluginLog PluginLog { get; private set; }
     [PluginService] public static ISigScanner SigScanner { get; private set; }
     // [PluginService] public static ITargetManager TargetManager { get; private set; }
-    // [PluginService] public static IToastGui ToastGui { get; private set; }
+    [PluginService] public static IToastGui ToastGui { get; private set; }
     // [PluginService] public static ITitleScreenMenu TitleScreenMenu { get; private set; }
     #pragma warning restore CS8618
 }

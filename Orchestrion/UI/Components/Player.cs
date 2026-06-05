@@ -6,6 +6,7 @@ using Dalamud.Interface.Components;
 using Dalamud.Bindings.ImGui;
 using Orchestrion.Audio;
 using Orchestrion.Persistence;
+using Orchestrion.Types;
 
 namespace Orchestrion.UI.Components;
 
@@ -16,7 +17,17 @@ public static class Player
 		var elapsed = TimeSpan.Zero;
 		var total = TimeSpan.Zero;
 
-		if (PlaylistManager.IsPlaying)
+		// A local file playing gives us a real position to scrub, whether or not it sits in a
+		// playlist. Game tracks have no exposed position, so they fall back to the playlist timer.
+		var audibleId = BGMManager.CurrentAudibleSong;
+		var localAudible = LocalSong.IsLocalId(audibleId) && LocalAudioPlayer.IsPlaying;
+
+		if (localAudible)
+		{
+			elapsed = LocalAudioPlayer.CurrentTime;
+			total = LocalAudioPlayer.TotalTime;
+		}
+		else if (PlaylistManager.IsPlaying)
 		{
 			elapsed = PlaylistManager.ElapsedDuration;
 			total = PlaylistManager.Duration;
@@ -96,10 +107,27 @@ public static class Player
 
 		// Draw progress bar
 		ImGui.PushStyleColor(ImGuiCol.PlotHistogram, ImGuiColors.DalamudWhite);
-		var frac = elapsed.TotalMilliseconds / total.TotalMilliseconds;
-		if (elapsed == TimeSpan.Zero && total == TimeSpan.Zero)
-			frac = 0;
+		var frac = total.TotalMilliseconds > 0 ? elapsed.TotalMilliseconds / total.TotalMilliseconds : 0;
 		ImGui.ProgressBar((float)frac, new Vector2(-1, 8), string.Empty);
+
+		// Click anywhere on the bar to seek, but only for local files (the only source we can scrub).
+		if (localAudible && total > TimeSpan.Zero && ImGui.IsItemHovered())
+		{
+			ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+
+			var barMin = ImGui.GetItemRectMin();
+			var barWidth = ImGui.GetItemRectSize().X;
+			var hoverFrac = Math.Clamp((ImGui.GetMousePos().X - barMin.X) / barWidth, 0f, 1f);
+			var hoverTime = TimeSpan.FromMilliseconds(total.TotalMilliseconds * hoverFrac);
+
+			ImGui.SetTooltip($"Seek to {hoverTime:mm\\:ss}");
+
+			if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+			{
+				LocalAudioPlayer.Seek(hoverTime);
+				PlaylistManager.NotifyLocalSeek(hoverTime);
+			}
+		}
 		ImGui.PopStyleColor();
 
 		// Draw times

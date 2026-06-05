@@ -15,6 +15,7 @@ public class Configuration : IPluginConfiguration
 
     public bool ShowSongInTitleBar { get; set; } = true;
     public bool ShowSongInChat { get; set; } = true;
+    public bool ShowSongInToast { get; set; } = false;
     public bool ShowIdInNative { get; set; } = false;
     public bool ShowSongInNative { get; set; } = true;
     public bool HandleSpecialModes { get; set; } = true;
@@ -50,6 +51,9 @@ public class Configuration : IPluginConfiguration
     /// </summary>
     public bool CopyLocalSongsToStorage { get; set; } = true;
     public bool LocalSongsAtTop { get; set; } = false;
+
+    /// <summary>When true, local songs are recorded in the History tab alongside game tracks.</summary>
+    public bool HistoryIncludeLocalSongs { get; set; } = true;
 
     /// <summary>
     /// Set to true while a local song is muting the game BGM, persisted so that if

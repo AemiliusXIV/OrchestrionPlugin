@@ -5,32 +5,21 @@ description: |-
   FFXIV soundtrack. It also supports playing your own local MP3 and WAV files as BGM replacements,
   with fade transitions and volume sync to the game's master/BGM sliders.
   A curated list of accurate song titles is included so you always know what's playing.
-punchline: Browse, replace, and extend the FFXIV BGM — including your own local audio files.
+punchline: Browse, replace, and extend the FFXIV BGM, including your own local audio files.
 repo_url: https://github.com/AemiliusXIV/OrchestrionPlugin
 tags:
   - bgm
   - music
   - audio
 changelog: |-
-  - Fixed: Deep Dungeon mode without a specific playlist now correctly
-    cycles tracks instead of staying on the first song.
-  - Quick Save: a [Save] link now appears in song echo chat messages, letting you bookmark the
-    currently playing song to a playlist with one click — no need to leave combat or remember the name.
-  - Quick Save: a Save button also appears in the Player (main window and mini player) while a song
-    is playing.
-  - Quick Save: songs are saved to a "Listen Later" playlist by default, which clears automatically
-    when you exit the game. Character switch clearing is a separate toggle, off by default.
-  - Quick Save: optional area summary — when you change zone, a chat message lists every song you
-    saved during that area.
-  - Quick Save: optional "Hide in cities and residential zones" setting to reduce noise from
-    frequently-repeating ambient tracks.
-  - Quick Save: fully configurable — single or two-action mode, target playlists, button labels,
-    confirmation echoes, and clear behaviour.
-  - Fixed: Quick Save link no longer appears on the "now playing" echo when music stops.
-  - Fixed: estate orchestrion track changes no longer produce a duplicate chat message when
-    "Show now playing in chat" is enabled.
-  - Settings: sub-settings now collapse when their parent toggle is off, reducing visual clutter.
-  - Settings: sections reordered — Mini Player and Quick Save appear before Localization and
-    Local Library; the Import section moves to the bottom.
-  - Settings: added a "Already done — don't show again" button to the Import section for players
-    who have already set things up manually.
+  Local songs now appear in the History tab. Anything you played from your own
+  library is as easy to find again as a game track. If you'd rather keep history
+  limited to game BGM, there's a toggle for it in Local Library settings.
+
+  You can scrub local files now. Click anywhere on the player's progress bar to
+  jump to that point in the track. Game BGM has no position we can read, so only
+  local audio responds to clicks.
+
+  Last, an optional now-playing toast. When a song starts it flashes a short note
+  on screen that fades by itself and leaves nothing in chat. Off by default; turn
+  it on under General settings.

@@ -225,6 +225,14 @@ public class RenderableSongList
 		}
 
 		ImGui.TableNextColumn();
+		if (entry.TimePlayed == default) return;
+		var deltaTime = DateTime.Now - entry.TimePlayed;
+		var unit = deltaTime.TotalMinutes >= 1 ? (int)deltaTime.TotalMinutes : (int)deltaTime.TotalSeconds;
+		var label =
+			deltaTime.TotalMinutes >= 1
+				? Loc.Localize("MinutesAgo", "{0}m ago")
+				: Loc.Localize("SecondsAgo", "{0}s ago");
+		ImGui.Text(string.Format(label, unit));
 	}
 
 	private void HandleSelect(int index, bool selected)

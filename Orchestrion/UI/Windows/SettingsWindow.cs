@@ -96,6 +96,10 @@ public class SettingsWindow : Window
             () => Configuration.Instance.ShowSongInChat,
             b => Configuration.Instance.ShowSongInChat = b);
 
+        Checkbox("Show a brief on-screen toast when the current song changes",
+            () => Configuration.Instance.ShowSongInToast,
+            b => Configuration.Instance.ShowSongInToast = b);
+
         Checkbox(Loc.Localize("ShowSongServerInfo",
             "Show current song in the \"server info\" UI element in-game"),
             () => Configuration.Instance.ShowSongInNative,
@@ -375,6 +379,10 @@ public class SettingsWindow : Window
         Checkbox("Show local songs at the top of the All Songs list",
             () => Configuration.Instance.LocalSongsAtTop,
             b => Configuration.Instance.LocalSongsAtTop = b);
+
+        Checkbox("Include local songs in the History tab",
+            () => Configuration.Instance.HistoryIncludeLocalSongs,
+            b => Configuration.Instance.HistoryIncludeLocalSongs = b);
 
         if (!Configuration.Instance.CopyLocalSongsToStorage)
         {

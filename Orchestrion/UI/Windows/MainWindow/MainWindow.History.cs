@@ -26,8 +26,18 @@ public partial class MainWindow
 	
 	private void AddSongToHistory(int id)
 	{
-		// Don't add silence
-		if (id == 1 || !SongList.Instance.TryGetSong(id, out _)) return;
+		if (id == 1) return; // silence
+
+		if (LocalSong.IsLocalId(id))
+		{
+			if (!Configuration.Instance.HistoryIncludeLocalSongs) return;
+			if (!Configuration.Instance.LocalSongs.ContainsKey(id)) return;
+		}
+		else if (!SongList.Instance.TryGetSong(id, out _))
+		{
+			return;
+		}
+
 		var newEntry = new RenderableSongEntry(id, DateTime.Now);
 		var currentIndex = _songHistory.Count - 1;
 

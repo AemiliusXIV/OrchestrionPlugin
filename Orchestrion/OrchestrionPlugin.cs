@@ -305,6 +305,29 @@ public unsafe class OrchestrionPlugin : IDalamudPlugin, IDisposable
 		DalamudApi.PluginLog.Debug($"[OnSongChanged] Changed from {oldSong} to {newSong}, oldPlayedByOrch: {oldPlayedByOrch}, playedByOrch: {playedByOrch}");
 		UpdateDtr(newSong, playedByOrch: playedByOrch);
 		UpdateChat(newSong, playedByOrch: playedByOrch);
+		ShowNowPlayingToast(newSong);
+	}
+
+	private void ShowNowPlayingToast(int songId)
+	{
+		if (!Configuration.Instance.ShowSongInToast) return;
+		if (songId == 0) return;
+		if (!DalamudApi.ClientState.IsLoggedIn) return;
+
+		string name;
+		if (LocalSong.IsLocalId(songId))
+		{
+			if (!Configuration.Instance.LocalSongs.TryGetValue(songId, out var localSong)) return;
+			name = localSong.Name;
+		}
+		else
+		{
+			if (!SongList.Instance.TryGetSong(songId, out var song)) return;
+			name = song.Strings[Configuration.Instance.ChatLanguageCode].Name;
+			if (string.IsNullOrEmpty(name)) return;
+		}
+
+		DalamudApi.ToastGui.ShowQuest($"{NativeNowPlayingPrefix}{name}");
 	}
 
 	public void OpenMainWindow()
@@ -624,6 +647,9 @@ public unsafe class OrchestrionPlugin : IDalamudPlugin, IDisposable
 
 		if (!trackChatName.IsNullOrWhitespace())
 		{
+			if (Configuration.Instance.ShowSongInToast && DalamudApi.ClientState.IsLoggedIn)
+				DalamudApi.ToastGui.ShowQuest($"{NativeNowPlayingPrefix}{trackChatName}");
+
 			// UpdateChat - mini
 			if (!Configuration.Instance.ShowSongInChat) return;
 			if (!DalamudApi.ClientState.IsLoggedIn) return;

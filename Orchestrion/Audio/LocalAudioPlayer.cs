@@ -14,6 +14,24 @@ public static class LocalAudioPlayer
 
     public static bool IsPlaying => _waveOut?.PlaybackState == PlaybackState.Playing;
 
+    /// <summary>Current playback position of the active local file, or zero when nothing is loaded.</summary>
+    public static TimeSpan CurrentTime => _audioReader?.CurrentTime ?? TimeSpan.Zero;
+
+    /// <summary>Total length of the active local file, or zero when nothing is loaded.</summary>
+    public static TimeSpan TotalTime => _audioReader?.TotalTime ?? TimeSpan.Zero;
+
+    /// <summary>
+    /// Jumps playback to <paramref name="position"/>, clamped to the file bounds.
+    /// No-op when no local file is loaded.
+    /// </summary>
+    public static void Seek(TimeSpan position)
+    {
+        if (_audioReader == null) return;
+        if (position < TimeSpan.Zero) position = TimeSpan.Zero;
+        if (position > _audioReader.TotalTime) position = _audioReader.TotalTime;
+        _audioReader.CurrentTime = position;
+    }
+
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
 
