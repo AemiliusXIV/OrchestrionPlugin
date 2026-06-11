@@ -1,0 +1,19 @@
+Orchestrion Aria
+A third-party Dalamud plugin for FINAL FANTASY XIV.
+
+FINAL FANTASY XIV is a registered trademark of Square Enix Holdings Co., Ltd.
+This project is unofficial and is not affiliated with or endorsed by Square Enix Co., Ltd.
+
+Orchestrion Aria is a fork of OrchestrionPlugin by perchbird and Meli, used under
+the terms of the MIT License (see LICENSE).
+
+Third-party packages used by this plugin, each under its own license:
+
+- NAudio, for local MP3 and WAV playback
+- FFXIVClientStructs, via the Dalamud SDK
+
+CheapLoc and Newtonsoft.Json are provided by the Dalamud runtime and are not
+redistributed by this project.
+
+Song titles and metadata come from a community-maintained spreadsheet, credited
+in the README.
