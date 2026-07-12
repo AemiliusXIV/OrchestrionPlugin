@@ -19,10 +19,15 @@ to you as soon as I can.
   Library deletes the copy the plugin made for it. Both are opt-in and ask for
   confirmation first; the plugin never deletes anything on its own.
 
-Nothing leaves your machine. There is no network access, no telemetry, and no
-account or login of any kind.
+- Downloads the community song-title spreadsheet on load (six public CSV sheets
+  from Google Docs) so track names stay current. If the download fails, the
+  plugin falls back to the copy bundled with it.
+
+That download is the plugin's only network activity, and the request carries
+nothing about you. Nothing about your usage leaves your machine. There is no
+telemetry and no account or login of any kind.
 
 ## Secrets
 
 No keys, tokens, or secrets are committed to this repository. The plugin holds no
-credentials, because it never talks to anything outside the game.
+credentials; the spreadsheet it fetches is public and needs none.

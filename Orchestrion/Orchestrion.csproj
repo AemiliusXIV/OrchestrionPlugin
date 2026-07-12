@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Dalamud.NET.Sdk/15.0.0">
   <PropertyGroup>
-    <PluginVersion>2.3.0.3</PluginVersion>
+    <PluginVersion>2.3.0.4</PluginVersion>
   </PropertyGroup>
   
   <PropertyGroup>
@@ -8,7 +8,7 @@
     <AssemblyTitle>orchestrionaria</AssemblyTitle>
     <Product>orchestrionaria</Product>
     <Authors>AemiliusXIV, Meli, perchbird</Authors>
-    <Copyright>Copyright Â©  2021</Copyright>
+    <Copyright>Copyright (c) 2021</Copyright>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <Version>$(PluginVersion)</Version>
     <FileVersion>$(PluginVersion)</FileVersion>
