@@ -12,14 +12,9 @@ tags:
   - music
   - audio
 changelog: |-
-  Local songs now appear in the History tab. Anything you played from your own
-  library is as easy to find again as a game track. If you'd rather keep history
-  limited to game BGM, there's a toggle for it in Local Library settings.
+  Fixed a crash when playing a random song from a playlist that mixes your local
+  tracks with game BGM. Picking random from a mixed playlist no longer throws.
 
-  You can scrub local files now. Click anywhere on the player's progress bar to
-  jump to that point in the track. Game BGM has no position we can read, so only
-  local audio responds to clicks.
-
-  Last, an optional now-playing toast. When a song starts it flashes a short note
-  on screen that fades by itself and leaves nothing in chat. Off by default; turn
-  it on under General settings.
+  The "delete original after importing" option now only shows when imports are set
+  to copy into the plugin's storage. If you import a file by reference instead, that
+  original is your only copy, so the option stays hidden and cannot remove it.

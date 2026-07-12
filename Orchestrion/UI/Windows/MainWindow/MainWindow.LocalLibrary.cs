@@ -97,8 +97,10 @@ public partial class MainWindow
             ImGui.PopStyleColor();
         }
 
-        // Delete-original checkbox — only shown once a path is filled in
-        if (!string.IsNullOrWhiteSpace(_localLibraryNewPath))
+        // Delete-original checkbox — only shown once a path is filled in, and
+        // only when imports are copied into storage (otherwise the original is
+        // the only copy and deleting it would break the entry).
+        if (!string.IsNullOrWhiteSpace(_localLibraryNewPath) && Configuration.Instance.CopyLocalSongsToStorage)
         {
             ImGui.Spacing();
             var delSingle = _deleteOriginalOnImport;
@@ -193,14 +195,18 @@ public partial class MainWindow
 
             ImGui.Spacing();
 
-            // Delete toggle — only visible now that files are chosen
-            var del = _pendingBulkDeleteOriginals;
-            if (ImGui.Checkbox("##orchdelbulkpending", ref del))
-                _pendingBulkDeleteOriginals = del;
-            ImGui.SameLine();
-            ImGui.TextUnformatted("Delete original files after importing");
-            if (ImGui.IsItemHovered())
-                ImGui.SetTooltip("Original files will be permanently deleted from their source\nlocations after being safely copied into plugin storage.");
+            // Delete toggle — only visible now that files are chosen, and only
+            // when imports are copied into storage (see TryAddLocalSong).
+            if (Configuration.Instance.CopyLocalSongsToStorage)
+            {
+                var del = _pendingBulkDeleteOriginals;
+                if (ImGui.Checkbox("##orchdelbulkpending", ref del))
+                    _pendingBulkDeleteOriginals = del;
+                ImGui.SameLine();
+                ImGui.TextUnformatted("Delete original files after importing");
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Original files will be permanently deleted from their source\nlocations after being safely copied into plugin storage.");
+            }
 
             if (_pendingBulkDeleteOriginals)
             {
@@ -398,7 +404,9 @@ public partial class MainWindow
 
         Configuration.Instance.AddLocalSong(name, path, duration);
 
-        if (deleteOriginal)
+        // Only safe when the file was copied into storage; otherwise the library
+        // entry still points at the original and deleting it would kill the song.
+        if (deleteOriginal && Configuration.Instance.CopyLocalSongsToStorage)
         {
             try { File.Delete(path); }
             catch (Exception ex) { DalamudApi.PluginLog.Warning(ex, $"[LocalLibrary] Could not delete original '{path}'"); }
@@ -469,7 +477,9 @@ public partial class MainWindow
                 var duration = LocalAudioPlayer.ReadDuration(path);
                 var name     = GetUniqueName(Path.GetFileNameWithoutExtension(path));
                 Configuration.Instance.AddLocalSong(name, path, duration);
-                if (deleteOriginals)
+                // Same guard as TryAddLocalSong: without a copy in storage the
+                // original is the only copy.
+                if (deleteOriginals && Configuration.Instance.CopyLocalSongsToStorage)
                 {
                     try { File.Delete(path); }
                     catch (Exception ex) { DalamudApi.PluginLog.Warning(ex, $"[LocalLibrary] Could not delete original '{path}'"); }

@@ -17,7 +17,7 @@ Orchestrion Aria will then appear in your Plugin Installer and update automatica
 
 > This is a fork of the original [Orchestrion plugin](https://github.com/perchbirdd/OrchestrionPlugin). Both cannot run at the same time. Please disable the original Orchestrion before enabling Orchestrion Aria. If you have existing settings from the original Orchestrion plugin, you will be prompted to import them on first load.
 
-![Usage](https://github.com/ff-meli/OrchestrionPlugin/raw/master/gh/orch.gif)
+![Usage](gh/orch.gif)
 
 _Note that this gif is very old, and is not representative of the current version of the plugin_
 

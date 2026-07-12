@@ -200,8 +200,9 @@ public class SongList
 
         ICollection<int> source = !isAllSongs ? playlist.Songs : _songs.Keys;
         if (source.Count == 0) return false;
-        if (!source.Any(x => _songs.ContainsKey(x))) return false;
-        if (!source.Any(x => _songs[x].FileExists)) return false;
+        // Playlists can hold local song ids that are not in _songs; index only
+        // after the ContainsKey check or this throws on mixed playlists.
+        if (!source.Any(x => _songs.ContainsKey(x) && _songs[x].FileExists)) return false;
 
         while (true)
         {
