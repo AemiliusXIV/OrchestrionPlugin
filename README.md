@@ -47,7 +47,7 @@ Open an issue on this repository.
 
 Orchestrion Aria runs entirely on your machine. It reads and changes the in-game BGM, reads your volume settings so local tracks match the game's levels, and plays audio files you choose to import. Imported files are copied into the plugin's own config folder by default, so they keep working if the original is moved or deleted.
 
-No network access, no telemetry, no data collection. Nothing you do in the plugin is sent anywhere.
+One thing does touch the network: on load, the plugin downloads the community song-title spreadsheet (six public CSV sheets from Google Docs) so track names and metadata stay current, falling back to its bundled copy if the download fails. That request carries nothing about you. Beyond it there is no network access, no telemetry, and no data collection; nothing you do in the plugin is sent anywhere.
 
 ## License
 
